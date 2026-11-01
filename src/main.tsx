@@ -171,7 +171,7 @@ function App() {
     });
     updateProfile({
       ...profile,
-      recent: [...questions.map(signature), ...profile.recent].slice(0, 250),
+      recent: [...questions.map(signature), ...profile.recent].slice(0, 2000),
     });
     window.scrollTo(0, 0);
   }
@@ -1268,7 +1268,7 @@ function App() {
               recent: [
                 ...worksheetQuestions(w).map(signature),
                 ...profile.recent,
-              ].slice(0, 250),
+              ].slice(0, 2000),
             });
           }}
           onOnline={startWorksheet}

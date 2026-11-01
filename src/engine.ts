@@ -1,3 +1,4 @@
+import { storyTemplates, storyText } from "./banks/math-stories-grade2";
 import {
   topics,
   syllables,
@@ -42,7 +43,9 @@ const q = (
   explanation,
   ...extra,
 });
-export function generate(topic: string): Question {
+export function generate(topic: string, variant?: number): Question {
+  const choose = <T>(bank: readonly T[]): T =>
+    variant === undefined ? pick(bank) : bank[variant % bank.length];
   const a = random(0, 20),
     b = random(0, 20 - a);
   if (topic === "arithmetic" || topic === "tens") {
@@ -110,35 +113,29 @@ export function generate(topic: string): Question {
     );
   }
   if (topic === "story") {
-    const scale = Math.random() < 0.3 ? 10 : 1,
-      x = scale === 1 ? random(3, 12) : random(1, 5),
-      y = scale === 1 ? random(1, 20 - x) : random(1, 10 - x),
-      add = Math.random() < 0.5;
-    const [name, item, unit] = pick([
-      ["Ema", "samolepek", "samolepek"],
-      ["Petr", "pastelek", "pastelek"],
-      ["Klára", "knížek", "knížek"],
-      ["Adam", "kostek", "kostek"],
-    ]);
-    const result = (add ? x + y : x) * scale;
+    const template = choose(storyTemplates);
+    const scale = Math.random() < 0.3 ? 10 : 1;
+    const x = scale === 1 ? random(3, 12) : random(1, 5);
+    const y = scale === 1 ? random(1, 20 - x) : random(1, 10 - x);
+    const add = template.operation === "add";
+    const first = (add ? x : x + y) * scale,
+      second = y * scale,
+      result = (add ? x + y : x) * scale;
+    const equation = `${first} ${add ? "+" : "−"} ${second} = ${result}`;
     return q(
       topic,
       "Vyřeš příběh.",
-      String(result),
-      `${add ? `${x * scale} + ${y * scale}` : `${(x + y) * scale} − ${y * scale}`} = ${result}. Odpověď: ${result} ${unit}.`,
+      equation,
+      `${equation}. Výsledek: ${result}.`,
       {
-        text: add
-          ? `${name} má ${x * scale} ${item}. Dostane ještě ${y * scale}. Kolik jich má dohromady?`
-          : `${name} má ${(x + y) * scale} ${item}. ${y * scale} jich rozdá. Kolik jich zůstane?`,
+        contentKey: `story:${template.id}`,
+        text: storyText(template, first, second),
         kind: "choice",
         choices: shuffle([
-          `${add ? `${x * scale} + ${y * scale}` : `${(x + y) * scale} − ${y * scale}`} = ${result}`,
-          `${add ? `${x * scale} − ${y * scale}` : `${(x + y) * scale} + ${y * scale}`} = ${(add ? x - y : x + 2 * y) * scale}`,
-          `${x * scale} + 0 = ${x * scale}`,
+          equation,
+          `${first} ${add ? "−" : "+"} ${second} = ${add ? first - second : first + second}`,
+          `${first} + 0 = ${first}`,
         ]),
-        answers: [
-          `${add ? `${x * scale} + ${y * scale}` : `${(x + y) * scale} − ${y * scale}`} = ${result}`,
-        ],
       },
     );
   }
@@ -154,7 +151,7 @@ export function generate(topic: string): Question {
     );
   }
   if (topic === "syllables") {
-    const word = pick(syllables);
+    const word = choose(syllables);
     return q(
       topic,
       "Klikni mezi písmena a rozděl slovo na slabiky.",
@@ -164,8 +161,11 @@ export function generate(topic: string): Question {
     );
   }
   if (topic === "sentences") {
-    const [type, bank] = pick(sentenceGroups),
-      text = pick(bank);
+    const [type, text] = choose(
+      sentenceGroups.flatMap(([type, bank]) =>
+        bank.map((text) => [type, text] as const),
+      ),
+    );
     return q(
       topic,
       "Jaký je to druh věty?",
@@ -179,7 +179,7 @@ export function generate(topic: string): Question {
     );
   }
   if (topic === "opposites") {
-    const [word, answer] = pick(opposites);
+    const [word, answer] = choose(opposites);
     return q(
       topic,
       `Co je opak slova „${word}“?`,
@@ -235,7 +235,10 @@ export function generate(topic: string): Question {
     );
   }
   if (topic === "wordorder") {
-    const index = random(0, wordSentences.length - 1),
+    const index =
+        variant === undefined
+          ? random(0, wordSentences.length - 1)
+          : variant % wordSentences.length,
       sentence = wordSentences[index],
       tokens = sentence
         .slice(0, -1)
@@ -259,7 +262,7 @@ export function generate(topic: string): Question {
     );
   }
   if (topic === "dityni" || topic === "detene") {
-    const [answer, word] = pick(topic === "dityni" ? dityni : detene);
+    const [answer, word] = choose(topic === "dityni" ? dityni : detene);
     const contexts: Record<string, string> = {
       kotě: "Malá kočka je kotě.",
       koně: "Ve stáji stojí koně.",
@@ -289,7 +292,7 @@ export function generate(topic: string): Question {
       },
     );
   }
-  const sentence = pick(capitalSentences);
+  const sentence = choose(capitalSentences);
   return q(
     "capitals",
     "Kliknutím na slova oprav velká písmena.",
@@ -298,6 +301,17 @@ export function generate(topic: string): Question {
     { kind: "case", tokens: sentence.toLocaleLowerCase("cs").split(" ") },
   );
 }
+export const bankSizes: Record<string, number> = {
+  syllables: syllables.length,
+  opposites: opposites.length,
+  sentences: sentenceGroups.reduce((n, [, bank]) => n + bank.length, 0),
+  wordorder: wordSentences.length,
+  capitals: capitalSentences.length,
+  dityni: dityni.length,
+  detene: detene.length,
+  story: storyTemplates.length,
+};
+
 export function makeSession(
   topicIds: string[],
   count: number,
@@ -307,6 +321,27 @@ export function makeSession(
     used = new Set<string>();
   for (let i = 0; i < count; i++) {
     const topic = topicIds[i % topicIds.length];
+    if (bankSizes[topic]) {
+      const candidates = shuffle(
+        Array.from({ length: bankSizes[topic] }, (_, index) =>
+          generate(topic, index),
+        ),
+      );
+      const available = candidates.filter((item) => !used.has(signature(item)));
+      if (!available.length)
+        throw new Error("Počet úloh přesahuje zásobu různých zadání v tématu.");
+      const fresh = available.find((item) => !recent.includes(signature(item)));
+      const item =
+        fresh ??
+        available.reduce((oldest, item) =>
+          recent.indexOf(signature(item)) > recent.indexOf(signature(oldest))
+            ? item
+            : oldest,
+        );
+      used.add(signature(item));
+      output.push({ ...item, id: `${Date.now()}-${i}` });
+      continue;
+    }
     let item: Question;
     let fingerprint = "";
     let attempt = 0;
@@ -325,6 +360,7 @@ export function makeSession(
   return output;
 }
 export const signature = (q: Question) =>
+  q.contentKey ??
   `${q.topic}:${q.prompt}:${q.text || ""}:${q.answers.join("/")}`;
 export const subjectTopics = (
   subject: Subject,

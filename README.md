@@ -44,6 +44,28 @@ Třídu 1–9 lze zvolit vlevo dole nebo v horní liště na mobilu. Každý pro
 
 Exporty mají hlavičku se jménem a datem jen na první stránce. Čeština má větší text pro označování a řádky pro psaní vět vysoké 54 bodů namísto 27.
 
+## Rozmanitost zadání
+
+| Okruh                     |                                  Zásoba ve 2. třídě |
+| ------------------------- | --------------------------------------------------: |
+| Slabiky                   |                                            113 slov |
+| Protiklady                |                                          104 dvojic |
+| Druhy vět                 | 108 oznamovacích + 108 tázacích + 108 rozkazovacích |
+| Skládání vět              |               104 vět, každá má dvě uznávaná řešení |
+| Velká písmena             |                                             128 vět |
+| Di/dy/ti/ty/ni/ny         |          108 míst k doplnění ve 107 různých slovech |
+| Dě/tě/ně                  |                                         140 položek |
+| Abeceda a nadřazené pojmy |                    171 různých slov ve 12 skupinách |
+| Matematické slovní úlohy  |          26 příběhových šablon s generovanými čísly |
+
+Pevné banky vybírají nejdříve dosud nepoužitá zadání a po vyčerpání nejdéle nepoužitá. Profil si pamatuje až 2 000 nedávných otisků. U příběhů se sleduje situace, ne jen čísla. Test ověřuje deset písemek po osmi úlohách bez opakování v každém pevném jazykovém okruhu. Více úloh než velikost zásoby si samozřejmě opakování vyžádá.
+
+Pro nová témata platí minima a metodika v [CONTENT_GUIDE.md](docs/CONTENT_GUIDE.md). Zásoby jsou oddělené v `src/banks/`; změna pořadí kartiček nebo jména neplní kvótu nového obsahu.
+
+## Posouzení přepisu a kontroly fotkou
+
+[HANDWRITING_FEASIBILITY.md](docs/HANDWRITING_FEASIBILITY.md) popisuje možné propojení počítače a mobilu přes QR, potřebný backend a nejistoty čtení dětského rukopisu. Jde pouze o posouzení. Upload, AI endpoint ani nová úloha přepisu nejsou implementované.
+
 ## Jak přidávat učivo
 
 Podrobný postup a dohoda pro budoucí rozvoj: [docs/CONTENT_GUIDE.md](docs/CONTENT_GUIDE.md).

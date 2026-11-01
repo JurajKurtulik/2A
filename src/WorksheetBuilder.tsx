@@ -22,6 +22,7 @@ import {
   type TopicSelection,
 } from "./worksheet";
 
+import { signature } from "./engine";
 import { getGrade, type Grade } from "./grades";
 export type BuilderOptions = {
   grade?: Grade;
@@ -187,12 +188,7 @@ export function WorksheetBuilder({
         selected,
         [
           ...recent,
-          ...(worksheet
-            ? worksheetQuestions(worksheet).map(
-                (q) =>
-                  `${q.topic}:${q.prompt}:${q.text || ""}:${q.answers.join("/")}`,
-              )
-            : []),
+          ...(worksheet ? worksheetQuestions(worksheet).map(signature) : []),
         ],
         grade,
       );
