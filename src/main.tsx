@@ -17,7 +17,7 @@ import {
   Settings,
   CheckCircle2,
 } from "lucide-react";
-import { topics, type Question, type Subject } from "./content";
+import { topics, topicsForGrade, type Question, type Subject } from "./content";
 import { isCorrect, makeSession, signature, subjectTopics } from "./engine";
 import "./style.css";
 import { WorksheetBuilder, type BuilderOptions } from "./WorksheetBuilder";
@@ -28,18 +28,17 @@ import {
   type Worksheet,
 } from "./worksheet";
 import { migrateProfileNames } from "./profiles";
-type RecordEntry = {
-  date: string;
-  label: string;
-  score: number;
-  correctedScore?: number;
-  total: number;
-  topics: { id: string; right: number; total: number }[];
-};
+import { grades, getGrade, type Grade } from "./grades";
+import {
+  completionRecord,
+  migrateHistory,
+  type HistoryEntry,
+} from "./progress";
 type Profile = {
   name: string;
   avatar: string;
-  history: RecordEntry[];
+  history: HistoryEntry[];
+  grade?: Grade;
   recent: string[];
 };
 type Data = {
@@ -68,11 +67,19 @@ function readData(): Data {
       ) &&
       (d.active === 0 || d.active === 1)
     )
-      return migrateProfileNames(d);
+      return {
+        ...migrateProfileNames(d),
+        profiles: migrateProfileNames(d).profiles.map((p: Profile) => ({
+          ...p,
+          grade: getGrade(p.grade),
+          history: p.history.map(migrateHistory),
+        })),
+      };
   } catch {}
   return initial;
 }
 type Session = {
+  grade: Grade;
   worksheet?: Worksheet;
   questions: Question[];
   answers: Record<string, string>;
@@ -93,6 +100,15 @@ function App() {
   const [builder, setBuilder] = useState<BuilderOptions | null>(null),
     [lastWorksheet, setLastWorksheet] = useState<Worksheet | null>(null);
   const profile = data.profiles[data.active];
+  const grade = getGrade(profile.grade);
+  const currentTopics = topicsForGrade(grade);
+  const currentHistory = profile.history.filter((h) => h.grade === grade);
+  const [historyFilter, setHistoryFilter] = useState<
+    "all" | "practice" | "test"
+  >("all");
+  const visibleHistory = currentHistory.filter(
+    (h) => historyFilter === "all" || h.kind === historyFilter,
+  );
   useEffect(() => {
     try {
       localStorage.setItem("skola-hrou-v1", JSON.stringify(data));
@@ -127,6 +143,11 @@ function App() {
     window.scrollTo(0, 0);
   }
   function start(ids: string[], label: string, test = false, count = 8) {
+    if (
+      !ids.length ||
+      ids.some((id) => !currentTopics.some((t) => t.id === id))
+    )
+      return;
     const questions = makeSession(ids, count, profile.recent);
     beginSession(questions, label, test);
   }
@@ -137,6 +158,7 @@ function App() {
     worksheet?: Worksheet,
   ) {
     setSession({
+      grade: getGrade(worksheet?.grade ?? grade),
       worksheet,
       questions,
       answers: {},
@@ -189,8 +211,8 @@ function App() {
       },
     });
   }
-  const totalCompleted = profile.history.length,
-    totalCorrect = profile.history.reduce((n, h) => n + h.score, 0);
+  const totalCompleted = currentHistory.length,
+    totalCorrect = currentHistory.reduce((n, h) => n + h.score, 0);
   function mascot() {
     return (
       <div className="mascot" aria-hidden="true">
@@ -214,9 +236,17 @@ function App() {
     );
   }
   function topicCards(subject: Subject) {
+    if (!topicsForGrade(grade, subject).length)
+      return (
+        <div className="empty">
+          <span>🌱</span>
+          <h2>Tady brzy přibude nové učivo</h2>
+          <p>Pro tento předmět v {grade}. třídě zatím nemáme cvičení.</p>
+        </div>
+      );
     return (
       <div className="topic-grid">
-        {topics
+        {currentTopics
           .filter((t) => t.subject === subject)
           .map((t) => (
             <button
@@ -407,7 +437,7 @@ function App() {
     isCorrect(q, decoded(q, session?.answers[q.id] || ""));
   // All evaluation paths use the displayed words rather than internal token indices.
   function submit() {
-    if (!session) return;
+    if (!session || session.done) return;
     const decodedAnswers = Object.fromEntries(
       session.questions.map((q) => [
         q.id,
@@ -420,40 +450,76 @@ function App() {
       !confirm(`Zbývá ${unanswered} nevyplněných úloh. Přesto vyhodnotit?`)
     )
       return;
-    const totals = [...new Set(session.questions.map((q) => q.topic))].map(
-      (id) => {
-        const qs = session.questions.filter((q) => q.topic === id);
-        return {
-          id,
-          right: qs.filter((q) =>
-            isCorrect(
-              q,
-              decoded(
-                q,
-                session.firstAnswers[q.id] ?? session.answers[q.id] ?? "",
-              ),
-            ),
-          ).length,
-          total: qs.length,
-        };
-      },
-    );
     updateProfile({
       ...profile,
       history: [
-        {
-          date: new Date().toISOString(),
+        completionRecord({
           label: session.label,
-          score: totals.reduce((n, t) => n + t.right, 0),
-          correctedScore: session.questions.filter(correct).length,
-          total: session.questions.length,
-          topics: totals,
-        },
+          test: session.test,
+          grade: session.grade,
+          variant: session.worksheet?.id,
+          questions: session.questions,
+          answers: decodedAnswers,
+          firstAnswers: Object.fromEntries(
+            Object.entries(session.firstAnswers).map(([id, value]) => [
+              id,
+              decoded(
+                session.questions.find((q) => q.id === id)!,
+                value,
+              ),
+            ]),
+          ),
+        }),
         ...profile.history,
-      ].slice(0, 100),
+      ],
     });
     setSession({ ...session, done: true });
     window.scrollTo(0, 0);
+  }
+  function changeGrade(value: string) {
+    if (
+      session &&
+      !session.done &&
+      !confirm("Změnou třídy opustíš rozpracované cvičení. Pokračovat?")
+    )
+      return;
+    setSession(null);
+    setBuilder(null);
+    setHistoryFilter("all");
+    updateProfile({ ...profile, grade: getGrade(Number(value)) });
+  }
+  function gradeSelect(id: string) {
+    return (
+      <label className="grade-picker" htmlFor={id}>
+        <span>Třída</span>
+        <select
+          id={id}
+          value={grade}
+          onChange={(e) => changeGrade(e.target.value)}
+        >
+          {grades.map((g) => (
+            <option key={g} value={g}>
+              {g}. třída
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+  function emptyGrade() {
+    return (
+      <section className="empty grade-empty">
+        <span>🌱</span>
+        <h2>{grade}. třída teprve vyroste</h2>
+        <p>
+          Pro tento ročník zatím nemáme učivo. Nová témata sem budeme postupně
+          přidávat.
+        </p>
+        <button className="button light" onClick={() => changeGrade("2")}>
+          Přejít na 2. třídu <ArrowRight size={16} />
+        </button>
+      </section>
+    );
   }
   const nav = [
     ["home", "Doma", Home],
@@ -492,9 +558,9 @@ function App() {
         </nav>
         <div className="sidebar-bottom">
           <div className="class-badge">
-            <span>2.A</span>
+            <span>{grade}.</span>
             <div>
-              <strong>Naše třída</strong>
+              {gradeSelect("sidebar-grade")}
               <small>Každý den o kousek dál</small>
             </div>
           </div>
@@ -513,6 +579,7 @@ function App() {
             </strong>
           </div>
           <div className="topbar-right">
+            <div className="mobile-grade">{gradeSelect("mobile-grade")}</div>
             <span className="star-count">
               <Star size={17} fill="currentColor" /> {totalCorrect}{" "}
               <span>objevů</span>
@@ -534,11 +601,15 @@ function App() {
               po zavření nezůstane uložený.
             </div>
           )}
-          {!session && page === "home" && (
+          {!session &&
+            !currentTopics.length &&
+            page !== "progress" &&
+            emptyGrade()}
+          {!session && currentTopics.length > 0 && page === "home" && (
             <>
               <div className="welcome-line">
                 <span className="eyebrow">TVŮJ MALÝ SVĚT VELKÝCH OBJEVŮ</span>
-                <span className="date-label">Učivo pro 2. třídu</span>
+                <span className="date-label">Učivo pro {grade}. třídu</span>
               </div>
               <section className="hero">
                 <div className="hero-copy">
@@ -556,9 +627,10 @@ function App() {
                   </p>
                   <button
                     className="button primary"
+                    disabled={!subjectTopics("math", grade).length}
                     onClick={() =>
                       start(
-                        subjectTopics("math"),
+                        subjectTopics("math", grade),
                         "Malá matematická rozcvička",
                         false,
                         6,
@@ -598,7 +670,7 @@ function App() {
                     malé číselné záhady.
                   </p>
                   <span className="subject-footer">
-                    6 okruhů k objevování{" "}
+                    {topicsForGrade(grade, "math").length} okruhů k objevování{" "}
                     <span className="round-arrow">
                       <ArrowRight size={20} />
                     </span>
@@ -620,7 +692,7 @@ function App() {
                     <br />a objevuj kouzlo vět.
                   </p>
                   <span className="subject-footer">
-                    9 okruhů k objevování{" "}
+                    {topicsForGrade(grade, "czech").length} okruhů k objevování{" "}
                     <span className="round-arrow">
                       <ArrowRight size={20} />
                     </span>
@@ -657,17 +729,20 @@ function App() {
               </div>
             </>
           )}
-          {!session && (page === "math" || page === "czech") && (
-            <>
-              <span className="eyebrow">VYBER SI SVÉ DOBRODRUŽSTVÍ</span>
-              <h1>{page === "math" ? "Svět čísel" : "Svět slov"}</h1>
-              <p className="page-intro">
-                Jedno téma, pár úloh a zase budeš o kousek dál. Kam se pustíme?
-              </p>
-              {topicCards(page)}
-            </>
-          )}
-          {!session && page === "tests" && (
+          {!session &&
+            currentTopics.length > 0 &&
+            (page === "math" || page === "czech") && (
+              <>
+                <span className="eyebrow">VYBER SI SVÉ DOBRODRUŽSTVÍ</span>
+                <h1>{page === "math" ? "Svět čísel" : "Svět slov"}</h1>
+                <p className="page-intro">
+                  Jedno téma, pár úloh a zase budeš o kousek dál. Kam se
+                  pustíme?
+                </p>
+                {topicCards(page)}
+              </>
+            )}
+          {!session && currentTopics.length > 0 && page === "tests" && (
             <>
               <span className="eyebrow">V KLIDU A BEZ ZNÁMEK</span>
               <h1>Zkus si písemku</h1>
@@ -676,76 +751,85 @@ function App() {
                 nebo stáhnout a vytisknout.
               </p>
               <div className="test-grid">
-                {(["math", "czech"] as Subject[]).map((s) => (
-                  <section className={"test-card " + s} key={s}>
-                    <span className="topic-icon">
-                      {s === "math" ? "＋" : "Aa"}
-                    </span>
-                    <h2>{s === "math" ? "Matematika" : "Český jazyk"}</h2>
-                    <p>Čtvrtletní příprava · 2. třída</p>
-                    <ul>
-                      {topics
-                        .filter((t) => t.subject === s)
-                        .map((t) => (
-                          <li key={t.id}>{t.title}</li>
-                        ))}
-                    </ul>
-                    <button
-                      className="button primary"
-                      onClick={() =>
-                        setBuilder({ subject: s, preset: "custom" })
-                      }
-                    >
-                      Sestavit vlastní písemku <ArrowRight size={16} />
-                    </button>
-                    <div className="test-presets">
-                      <span>Rychlé předvolby · výběr lze upravit</span>
+                {(["math", "czech"] as Subject[])
+                  .filter((s) => topicsForGrade(grade, s).length > 0)
+                  .map((s) => (
+                    <section className={"test-card " + s} key={s}>
+                      <span className="topic-icon">
+                        {s === "math" ? "＋" : "Aa"}
+                      </span>
+                      <h2>{s === "math" ? "Matematika" : "Český jazyk"}</h2>
+                      <p>Cvičná písemka · {grade}. třída</p>
+                      <ul>
+                        {currentTopics
+                          .filter((t) => t.subject === s)
+                          .map((t) => (
+                            <li key={t.id}>{t.title}</li>
+                          ))}
+                      </ul>
                       <button
-                        className="button light"
+                        className="button primary"
                         onClick={() =>
-                          setBuilder({ subject: s, preset: "short" })
+                          setBuilder({ grade, subject: s, preset: "custom" })
                         }
                       >
-                        Krátká · {s === "math" ? 12 : 18} příkladů
+                        Sestavit vlastní písemku <ArrowRight size={16} />
                       </button>
-                      <button
-                        className="button light"
-                        onClick={() =>
-                          setBuilder({ subject: s, preset: "long" })
-                        }
-                      >
-                        Delší · {s === "math" ? 24 : 27} příkladů
-                      </button>
-                    </div>
-                  </section>
-                ))}
+                      <div className="test-presets">
+                        <span>Rychlé předvolby · výběr lze upravit</span>
+                        <button
+                          className="button light"
+                          onClick={() =>
+                            setBuilder({ grade, subject: s, preset: "short" })
+                          }
+                        >
+                          Krátká · {topicsForGrade(grade, s).length * 2}{" "}
+                          příkladů
+                        </button>
+                        <button
+                          className="button light"
+                          onClick={() =>
+                            setBuilder({ grade, subject: s, preset: "long" })
+                          }
+                        >
+                          Delší ·{" "}
+                          {topicsForGrade(grade, s).length *
+                            (s === "math" ? 4 : 3)}{" "}
+                          příkladů
+                        </button>
+                      </div>
+                    </section>
+                  ))}
               </div>
             </>
           )}
-          {!session && page === "tests" && lastWorksheet && (
-            <section className="saved-worksheet">
-              <div>
-                <strong>Poslední sestavená písemka</strong>
-                <p>
-                  {subjectName(lastWorksheet.subject)} · varianta{" "}
-                  {lastWorksheet.id} ·{" "}
-                  {worksheetQuestions(lastWorksheet).length} příkladů
-                </p>
-              </div>
-              <button
-                className="button light"
-                onClick={() =>
-                  setBuilder({
-                    subject: lastWorksheet.subject,
-                    preset: "custom",
-                    worksheet: lastWorksheet,
-                  })
-                }
-              >
-                Otevřít zadání a exporty <ArrowRight size={16} />
-              </button>
-            </section>
-          )}
+          {!session &&
+            page === "tests" &&
+            lastWorksheet &&
+            getGrade(lastWorksheet.grade) === grade && (
+              <section className="saved-worksheet">
+                <div>
+                  <strong>Poslední sestavená písemka</strong>
+                  <p>
+                    {subjectName(lastWorksheet.subject)} · varianta{" "}
+                    {lastWorksheet.id} ·{" "}
+                    {worksheetQuestions(lastWorksheet).length} příkladů
+                  </p>
+                </div>
+                <button
+                  className="button light"
+                  onClick={() =>
+                    setBuilder({
+                      subject: lastWorksheet.subject,
+                      preset: "custom",
+                      worksheet: lastWorksheet,
+                    })
+                  }
+                >
+                  Otevřít zadání a exporty <ArrowRight size={16} />
+                </button>
+              </section>
+            )}
           {!session && page === "progress" && (
             <>
               <span className="eyebrow">KAŽDÝ MALÝ KROK JE VIDĚT</span>
@@ -757,7 +841,7 @@ function App() {
                 <div>
                   <Trophy />
                   <strong>{totalCompleted}</strong>
-                  <span>dokončených cvičení</span>
+                  <span>dokončených dobrodružství</span>
                 </div>
                 <div>
                   <Star />
@@ -769,7 +853,7 @@ function App() {
                   <strong>
                     {
                       new Set(
-                        profile.history.flatMap((h) =>
+                        currentHistory.flatMap((h) =>
                           h.topics.map((t) => t.id),
                         ),
                       ).size
@@ -778,11 +862,14 @@ function App() {
                   <span>prozkoumaných témat</span>
                 </div>
               </div>
-              {!profile.history.length ? (
+              {!currentHistory.length ? (
                 <div className="empty">
                   <span>🌱</span>
                   <h2>Tvoje cesta právě začíná</h2>
-                  <p>Dokonči první cvičení a tvůj pokrok se objeví tady.</p>
+                  <p>
+                    Dokonči cvičení nebo online písemku a výsledek se objeví
+                    tady.
+                  </p>
                   <button
                     className="button primary"
                     onClick={() => navigate("math")}
@@ -794,9 +881,9 @@ function App() {
                 <>
                   <h2>Co ještě procvičit?</h2>
                   <div className="review-topics">
-                    {topics
+                    {currentTopics
                       .filter((t) =>
-                        profile.history.some((h) =>
+                        currentHistory.some((h) =>
                           h.topics.some(
                             (r) => r.id === t.id && r.right < r.total,
                           ),
@@ -813,9 +900,41 @@ function App() {
                         </button>
                       ))}
                   </div>
-                  <h2>Poslední dobrodružství</h2>
+                  <h2>Poslední dobrodružství · {grade}. třída</h2>
+                  <div
+                    className="history-filters"
+                    aria-label="Druh dokončené aktivity"
+                  >
+                    {(
+                      [
+                        ["all", "Vše"],
+                        ["practice", "Cvičení"],
+                        ["test", "Písemky"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <button
+                        className="button light"
+                        aria-pressed={historyFilter === key}
+                        key={key}
+                        onClick={() => setHistoryFilter(key)}
+                      >
+                        {label} (
+                        {
+                          currentHistory.filter(
+                            (h) => key === "all" || h.kind === key,
+                          ).length
+                        }
+                        )
+                      </button>
+                    ))}
+                  </div>
+                  {!visibleHistory.length && (
+                    <p className="hint">
+                      Zatím nemáš dokončenou aktivitu tohoto druhu.
+                    </p>
+                  )}
                   <div className="history">
-                    {profile.history.map((h, i) => (
+                    {visibleHistory.map((h, i) => (
                       <div key={i}>
                         <span className="history-icon">
                           <CheckCircle2 size={20} />
@@ -823,6 +942,8 @@ function App() {
                         <span>
                           <strong>{h.label}</strong>
                           <small>
+                            {h.kind === "test" ? "Písemka" : "Cvičení"} ·{" "}
+                            {h.grade}. třída ·{" "}
                             {new Date(h.date).toLocaleDateString("cs-CZ")}
                           </small>
                         </span>
@@ -1044,6 +1165,7 @@ function App() {
                               count: s.questions.length,
                             })),
                             profile.recent,
+                            grade,
                           ),
                         )
                       : start(

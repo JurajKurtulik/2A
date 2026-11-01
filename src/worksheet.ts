@@ -1,28 +1,33 @@
-import { topics, type Question, type Subject } from "./content";
+import { subjects, topics, type Question, type Subject } from "./content";
 import { makeSession, signature } from "./engine";
+import { DEFAULT_GRADE, type Grade } from "./grades";
 
 export type TopicSelection = { topic: string; count: number };
 export type Worksheet = {
+  grade?: Grade;
   id: string;
   subject: Subject;
   createdAt: string;
   sections: { topic: string; questions: Question[] }[];
 };
-export const subjectName = (subject: Subject) =>
-  subject === "math" ? "Matematika" : "Český jazyk";
+export const subjectName = (subject: Subject) => subjects[subject].title;
 export function validateSelection(
   subject: Subject,
   selections: TopicSelection[],
+  grade: Grade = DEFAULT_GRADE,
 ): string | null {
   if (!selections.length) return "Vyber alespoň jedno téma.";
   if (new Set(selections.map((s) => s.topic)).size !== selections.length)
     return "Každé téma vyber pouze jednou.";
   if (
     selections.some(
-      (s) => !topics.some((t) => t.id === s.topic && t.subject === subject),
+      (s) =>
+        !topics.some(
+          (t) => t.id === s.topic && t.subject === subject && t.grade === grade,
+        ),
     )
   )
-    return "Téma nepatří do vybraného předmětu.";
+    return "Téma nepatří do vybraného předmětu a ročníku.";
   if (
     selections.some(
       (s) => !Number.isInteger(s.count) || s.count < 1 || s.count > 20,
@@ -37,8 +42,9 @@ export function createWorksheet(
   subject: Subject,
   selections: TopicSelection[],
   recent: string[] = [],
+  grade: Grade = DEFAULT_GRADE,
 ): Worksheet {
-  const error = validateSelection(subject, selections);
+  const error = validateSelection(subject, selections, grade);
   if (error) throw new Error(error);
   const generated = selections.map((s) => ({
     topic: s.topic,
@@ -47,6 +53,7 @@ export function createWorksheet(
   const id = crypto.randomUUID().slice(0, 8).toUpperCase();
   return {
     id,
+    grade,
     subject,
     createdAt: new Date().toISOString(),
     sections: generated.map((s) => ({
@@ -69,6 +76,7 @@ export type PaperItem = {
   writingLines: number;
 };
 export type PaperSection = {
+  style?: import("./content").Topic["paper"];
   title: string;
   instruction: string;
   items: PaperItem[];
@@ -94,16 +102,15 @@ const instructions: Record<string, string> = {
 export function paperSections(w: Worksheet): PaperSection[] {
   return w.sections.map((s) => ({
     title: topics.find((t) => t.id === s.topic)!.title,
+    style: topics.find((t) => t.id === s.topic)!.paper,
     instruction: instructions[s.topic] || "Vyřeš následující úlohy.",
-    columns: [
-      "arithmetic",
-      "tens",
-      "decompose",
-      "missing",
-      "opposites",
-    ].includes(s.topic)
-      ? 2
-      : 1,
+    columns:
+      topics.find((t) => t.id === s.topic)!.paper?.columns ??
+      (["arithmetic", "tens", "decompose", "missing", "opposites"].includes(
+        s.topic,
+      )
+        ? 2
+        : 1),
     items: s.questions.map((q) => {
       const base = { answer: q.answers.join(" / "), writingLines: 0 };
       if (["arithmetic", "tens"].includes(q.topic))
@@ -167,13 +174,14 @@ export type PaperRow = {
   height: number;
   rule?: boolean;
 };
-export type PaperPage = { rows: PaperRow[] };
+export type PaperPage = { rows: PaperRow[]; bodyTop: number };
 export type Measure = (text: string, size: number, bold?: boolean) => number;
 export const PAPER = {
   width: 595.28,
   height: 841.89,
   margin: 54,
   bodyTop: 145,
+  continuationTop: 54,
   bodyBottom: 770,
 };
 function wrap(
@@ -199,20 +207,24 @@ export function layoutPaper(
   solutions: boolean,
   measure: Measure,
 ): PaperPage[] {
-  const pages: PaperPage[] = [{ rows: [] }];
+  const pages: PaperPage[] = [{ rows: [], bodyTop: PAPER.bodyTop }];
   let used = 0;
-  const room = PAPER.bodyBottom - PAPER.bodyTop,
-    width = PAPER.width - 2 * PAPER.margin;
+  const room = () => PAPER.bodyBottom - pages.at(-1)!.bodyTop;
+  const width = PAPER.width - 2 * PAPER.margin;
   const put = (rows: PaperRow[]) => {
     const height = rows.reduce((n, r) => n + r.height, 0);
-    if (used + height > room) {
-      pages.push({ rows: [] });
+    if (used + height > room()) {
+      pages.push({ rows: [], bodyTop: PAPER.continuationTop });
       used = 0;
     }
     pages.at(-1)!.rows.push(...rows);
     used += height;
   };
   paperSections(w).forEach((s, sectionIndex) => {
+    const fontSize = solutions ? 14 : (s.style?.fontSize ?? 14);
+    const lineHeight = solutions ? 24 : (s.style?.lineHeight ?? 24);
+    const writingHeight = s.style?.writingLineHeight ?? 27;
+    const itemSpacing = solutions ? 5 : (s.style?.itemSpacing ?? 5);
     const heading: PaperRow[] = [
       {
         cells: [`${sectionIndex + 1}. ${s.title}`],
@@ -235,7 +247,7 @@ export function layoutPaper(
         wrap(
           `${i + j + 1}) ${solutions ? item.answer : item.lines.join(" ")}`,
           colWidth,
-          14,
+          fontSize,
           measure,
         ),
       );
@@ -243,8 +255,8 @@ export function layoutPaper(
         { length: Math.max(...wrapped.map((x) => x.length)) },
         (_, line) => ({
           cells: wrapped.map((x) => x[line] || ""),
-          size: 14,
-          height: 24,
+          size: fontSize,
+          height: lineHeight,
         }),
       );
       if (!solutions) {
@@ -253,11 +265,11 @@ export function layoutPaper(
           rows.push({
             cells: s.columns === 2 ? ["", ""] : [""],
             size: 13,
-            height: 27,
+            height: writingHeight,
             rule: true,
           });
       }
-      rows.push({ cells: [], size: 1, height: 5 });
+      rows.push({ cells: [], size: 1, height: itemSpacing });
       if (
         !solutions &&
         sectionIndex === w.sections.length - 1 &&
@@ -272,7 +284,7 @@ export function layoutPaper(
     }
     put([...heading, ...(groups.shift() || [])]);
     for (const group of groups) {
-      if (used + group.reduce((n, r) => n + r.height, 0) > room)
+      if (used + group.reduce((n, r) => n + r.height, 0) > room())
         put([
           {
             cells: [`${sectionIndex + 1}. ${s.title} (pokračování)`],
@@ -284,7 +296,7 @@ export function layoutPaper(
         ]);
       else put(group);
     }
-    if (used + 8 <= room) put([{ cells: [], size: 1, height: 8 }]);
+    if (used + 8 <= room()) put([{ cells: [], size: 1, height: 8 }]);
   });
   return pages;
 }

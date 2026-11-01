@@ -133,7 +133,7 @@ test("Every topic paginates at maximum supported count without clipping or missi
       for (const page of pages) {
         assert.ok(
           page.rows.reduce((n, r) => n + r.height, 0) <=
-            PAPER.bodyBottom - PAPER.bodyTop,
+            PAPER.bodyBottom - page.bodyTop,
         );
         assert.ok(page.rows.length > 0);
       }
@@ -151,4 +151,24 @@ test("Every topic paginates at maximum supported count without clipping or missi
     const { pages } = await prepareLayout(w, false, await fonts);
     assert.ok(pages.length);
   }
+});
+
+test("Czech handwriting has larger text and double writing space; headers only on first page", async () => {
+  const w = createWorksheet("czech", [
+    { topic: "wordorder", count: 12 },
+    { topic: "syllables", count: 3 },
+  ]);
+  const { pages } = await prepareLayout(w, false, await fonts);
+  assert.equal(pages[0].bodyTop, 145);
+  assert.ok(pages.length > 1);
+  assert.ok(pages.slice(1).every((p) => p.bodyTop === 54));
+  const rows = pages.flatMap((p) => p.rows);
+  assert.ok(rows.some((r) => r.rule && r.height === 54));
+  assert.ok(rows.some((r) => r.size === 22 && r.height === 46));
+  const zip = await JSZip.loadAsync(
+    await (await exportDocx(w, false, await fonts)).arrayBuffer(),
+  );
+  const xml = await zip.file("word/document.xml")!.async("string");
+  assert.equal((xml.match(/Jméno:/g) || []).length, 1);
+  assert.equal((xml.match(/cvičná písemka/g) || []).length, 1);
 });

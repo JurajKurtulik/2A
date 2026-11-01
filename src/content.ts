@@ -1,4 +1,9 @@
-export type Subject = "math" | "czech";
+import { DEFAULT_GRADE, type Grade } from "./grades";
+export const subjects = {
+  math: { title: "Matematika" },
+  czech: { title: "Český jazyk" },
+} as const;
+export type Subject = keyof typeof subjects;
 export type Kind = "input" | "choice" | "order" | "syllables" | "case";
 export type Question = {
   id: string;
@@ -12,6 +17,14 @@ export type Question = {
   explanation: string;
 };
 export type Topic = {
+  grade: Grade;
+  paper?: {
+    fontSize?: number;
+    lineHeight?: number;
+    writingLineHeight?: number;
+    itemSpacing?: number;
+    columns?: 1 | 2;
+  };
   id: string;
   subject: Subject;
   title: string;
@@ -22,6 +35,7 @@ export const topics: Topic[] = [
   {
     id: "arithmetic",
     subject: "math",
+    grade: 2,
     title: "Počítání do 20",
     description: "Sčítání a odčítání malých čísel.",
     icon: "＋",
@@ -29,6 +43,7 @@ export const topics: Topic[] = [
   {
     id: "tens",
     subject: "math",
+    grade: 2,
     title: "Celé desítky",
     description: "Po desítkách až do stovky.",
     icon: "10",
@@ -36,6 +51,7 @@ export const topics: Topic[] = [
   {
     id: "decompose",
     subject: "math",
+    grade: 2,
     title: "Desítky a jednotky",
     description: "Rozlož číslo na dvě části.",
     icon: "▦",
@@ -43,6 +59,7 @@ export const topics: Topic[] = [
   {
     id: "missing",
     subject: "math",
+    grade: 2,
     title: "Ztracené číslo",
     description: "Najdi číslo, které se schovalo.",
     icon: "?",
@@ -50,6 +67,7 @@ export const topics: Topic[] = [
   {
     id: "sequence",
     subject: "math",
+    grade: 2,
     title: "Číselné řady",
     description: "Objev pravidlo a pokračuj.",
     icon: "→",
@@ -57,69 +75,106 @@ export const topics: Topic[] = [
   {
     id: "story",
     subject: "math",
+    grade: 2,
     title: "Slovní úlohy",
     description: "Malé příběhy, velké přemýšlení.",
     icon: "✎",
   },
   {
     id: "alphabet",
+    paper: {
+      fontSize: 18,
+      lineHeight: 32,
+      writingLineHeight: 54,
+      itemSpacing: 12,
+      columns: 1,
+    },
     subject: "czech",
+    grade: 2,
     title: "Hrátky s abecedou",
     description: "Seřaď slova od A do Ž.",
     icon: "A",
   },
   {
     id: "syllables",
+    paper: { fontSize: 22, lineHeight: 46, itemSpacing: 18, columns: 1 },
     subject: "czech",
+    grade: 2,
     title: "Slova a slabiky",
     description: "Rozděl slova malým kliknutím.",
     icon: "••",
   },
   {
     id: "sentences",
+    paper: { fontSize: 18, lineHeight: 38, itemSpacing: 12, columns: 1 },
     subject: "czech",
+    grade: 2,
     title: "Druhy vět",
     description: "Oznamujeme, ptáme se, přikazujeme.",
     icon: "?!",
   },
   {
     id: "opposites",
+    paper: { fontSize: 18, lineHeight: 38, itemSpacing: 12, columns: 1 },
     subject: "czech",
+    grade: 2,
     title: "Slovní protiklady",
     description: "Najdi slovo opačného významu.",
     icon: "↔",
   },
   {
     id: "categories",
+    paper: { fontSize: 18, lineHeight: 38, itemSpacing: 12, columns: 1 },
     subject: "czech",
+    grade: 2,
     title: "Co k sobě patří?",
     description: "Nadřazená a podřazená slova.",
     icon: "⌘",
   },
   {
     id: "wordorder",
+    paper: {
+      fontSize: 18,
+      lineHeight: 32,
+      writingLineHeight: 54,
+      itemSpacing: 12,
+      columns: 1,
+    },
     subject: "czech",
+    grade: 2,
     title: "Poskládej větu",
     description: "Ze slov sestav celý příběh.",
     icon: "≡",
   },
   {
     id: "dityni",
+    paper: { fontSize: 20, lineHeight: 42, itemSpacing: 14, columns: 1 },
     subject: "czech",
+    grade: 2,
     title: "Di, dy, ti, ty, ni, ny",
     description: "Vyber slabiku do slova.",
     icon: "i/y",
   },
   {
     id: "detene",
+    paper: { fontSize: 20, lineHeight: 42, itemSpacing: 14, columns: 1 },
     subject: "czech",
+    grade: 2,
     title: "Dě, tě, ně",
     description: "Doplň správné háčky.",
     icon: "ě",
   },
   {
     id: "capitals",
+    paper: {
+      fontSize: 18,
+      lineHeight: 32,
+      writingLineHeight: 54,
+      itemSpacing: 12,
+      columns: 1,
+    },
     subject: "czech",
+    grade: 2,
     title: "Velká písmena",
     description: "Jména lidí, zvířat a měst.",
     icon: "Aa",
@@ -283,3 +338,11 @@ export const alternateSentences = [
   "Zvonek zvoní ve škole.",
   "Motýl létá na louce.",
 ];
+
+export const topicsForGrade = (
+  grade: Grade = DEFAULT_GRADE,
+  subject?: Subject,
+) =>
+  topics.filter(
+    (t) => t.grade === grade && (!subject || t.subject === subject),
+  );

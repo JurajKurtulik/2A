@@ -11,10 +11,9 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { topics, type Subject } from "./content";
+import { topicsForGrade, type Subject } from "./content";
 import {
   createWorksheet,
-  PAPER,
   subjectName,
   validateSelection,
   worksheetQuestions,
@@ -23,7 +22,9 @@ import {
   type TopicSelection,
 } from "./worksheet";
 
+import { getGrade, type Grade } from "./grades";
 export type BuilderOptions = {
+  grade?: Grade;
   subject: Subject;
   preset: "custom" | "short" | "long";
   worksheet?: Worksheet;
@@ -48,22 +49,28 @@ function PaperPreview({
     <>
       {pages.map((page, i) => (
         <div className="paper-page" key={i}>
-          <div className="paper-title">
-            {subjectName(worksheet.subject)} –{" "}
-            {solutions ? "řešení pro rodiče" : "cvičná písemka"}
-          </div>
-          <div className="paper-meta">2. třída | Varianta {worksheet.id}</div>
-          <div className="paper-name">
-            {solutions
-              ? "Řešení patří ke stejnému označení varianty na zadání."
-              : "Jméno: __________________________    Datum: ______________"}
-          </div>
+          {i === 0 && (
+            <>
+              <div className="paper-title">
+                {subjectName(worksheet.subject)} –{" "}
+                {solutions ? "řešení pro rodiče" : "cvičná písemka"}
+              </div>
+              <div className="paper-meta">
+                {getGrade(worksheet.grade)}. třída | Varianta {worksheet.id}
+              </div>
+              <div className="paper-name">
+                {solutions
+                  ? "Řešení patří ke stejnému označení varianty na zadání."
+                  : "Jméno: __________________________    Datum: ______________"}
+              </div>
+            </>
+          )}
           {page.rows.map((row, r) => (
             <div
               key={r}
               className={"paper-row " + (row.rule ? "paper-rule" : "")}
               style={{
-                top: `${PAPER.bodyTop + page.rows.slice(0, r).reduce((n, x) => n + x.height, 0)}pt`,
+                top: `${page.bodyTop + page.rows.slice(0, r).reduce((n, x) => n + x.height, 0)}pt`,
                 height: `${row.height}pt`,
                 fontSize: `${row.size}pt`,
                 fontWeight: row.bold ? 700 : 400,
@@ -71,7 +78,14 @@ function PaperPreview({
               }}
             >
               {row.cells.map((cell, c) => (
-                <span key={c}>{cell}</span>
+                <span
+                  key={c}
+                  style={
+                    row.rule ? { height: `${row.height - 7}pt` } : undefined
+                  }
+                >
+                  {cell}
+                </span>
               ))}
             </div>
           ))}
@@ -93,20 +107,20 @@ export function WorksheetBuilder({
   onGenerated,
   onOnline,
 }: Props) {
+  const grade = getGrade(options.worksheet?.grade ?? options.grade);
+  const availableTopics = topicsForGrade(grade, options.subject);
   const [counts, setCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(
-      topics
-        .filter((t) => t.subject === options.subject)
-        .map((t) => [
-          t.id,
-          options.preset === "custom"
-            ? 0
-            : options.preset === "short"
-              ? 2
-              : options.subject === "math"
-                ? 4
-                : 3,
-        ]),
+      availableTopics.map((t) => [
+        t.id,
+        options.preset === "custom"
+          ? 0
+          : options.preset === "short"
+            ? 2
+            : options.subject === "math"
+              ? 4
+              : 3,
+      ]),
     ),
   );
   const [step, setStep] = useState(options.worksheet ? 3 : 1),
@@ -120,11 +134,11 @@ export function WorksheetBuilder({
     [busy, setBusy] = useState("");
   const dialog = useRef<HTMLDivElement>(null),
     requestVersion = useRef(0);
-  const selections: TopicSelection[] = topics
-    .filter((t) => t.subject === options.subject && counts[t.id] > 0)
+  const selections: TopicSelection[] = availableTopics
+    .filter((t) => counts[t.id] > 0)
     .map((t) => ({ topic: t.id, count: counts[t.id] }));
   const total = selections.reduce((n, s) => n + s.count, 0),
-    selectionError = validateSelection(options.subject, selections);
+    selectionError = validateSelection(options.subject, selections, grade);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
@@ -168,15 +182,20 @@ export function WorksheetBuilder({
               count: s.questions.length,
             }))
           : selections;
-      const next = createWorksheet(options.subject, selected, [
-        ...recent,
-        ...(worksheet
-          ? worksheetQuestions(worksheet).map(
-              (q) =>
-                `${q.topic}:${q.prompt}:${q.text || ""}:${q.answers.join("/")}`,
-            )
-          : []),
-      ]);
+      const next = createWorksheet(
+        options.subject,
+        selected,
+        [
+          ...recent,
+          ...(worksheet
+            ? worksheetQuestions(worksheet).map(
+                (q) =>
+                  `${q.topic}:${q.prompt}:${q.text || ""}:${q.answers.join("/")}`,
+              )
+            : []),
+        ],
+        grade,
+      );
       setWorksheet(next);
       onGenerated(next);
       if (step === 2 && mode === "online") {
@@ -300,9 +319,7 @@ export function WorksheetBuilder({
                     onClick={() =>
                       setCounts(
                         Object.fromEntries(
-                          topics
-                            .filter((t) => t.subject === options.subject)
-                            .map((t) => [t.id, 2]),
+                          availableTopics.map((t) => [t.id, 2]),
                         ),
                       )
                     }
@@ -312,55 +329,53 @@ export function WorksheetBuilder({
                   <button onClick={() => setCounts({})}>Zrušit výběr</button>
                 </div>
                 <div className="builder-topics">
-                  {topics
-                    .filter((t) => t.subject === options.subject)
-                    .map((t) => (
-                      <div
-                        className={
-                          "builder-topic " + (counts[t.id] > 0 ? "chosen" : "")
-                        }
-                        key={t.id}
-                      >
-                        <label className="topic-checkbox">
+                  {availableTopics.map((t) => (
+                    <div
+                      className={
+                        "builder-topic " + (counts[t.id] > 0 ? "chosen" : "")
+                      }
+                      key={t.id}
+                    >
+                      <label className="topic-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={counts[t.id] > 0}
+                          onChange={(e) =>
+                            setCounts({
+                              ...counts,
+                              [t.id]: e.target.checked ? 4 : 0,
+                            })
+                          }
+                        />
+                        <span>
+                          <strong>{t.title}</strong>
+                          <small>{t.description}</small>
+                        </span>
+                      </label>
+                      {counts[t.id] > 0 && (
+                        <label className="count-input">
+                          <span>Počet příkladů</span>
                           <input
-                            type="checkbox"
-                            checked={counts[t.id] > 0}
+                            type="number"
+                            min={1}
+                            max={20}
+                            step={1}
+                            aria-label={`Počet příkladů: ${t.title}`}
+                            value={counts[t.id]}
                             onChange={(e) =>
                               setCounts({
                                 ...counts,
-                                [t.id]: e.target.checked ? 4 : 0,
+                                [t.id]: Math.max(
+                                  1,
+                                  Number(e.target.value) || 1,
+                                ),
                               })
                             }
                           />
-                          <span>
-                            <strong>{t.title}</strong>
-                            <small>{t.description}</small>
-                          </span>
                         </label>
-                        {counts[t.id] > 0 && (
-                          <label className="count-input">
-                            <span>Počet příkladů</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={20}
-                              step={1}
-                              aria-label={`Počet příkladů: ${t.title}`}
-                              value={counts[t.id]}
-                              onChange={(e) =>
-                                setCounts({
-                                  ...counts,
-                                  [t.id]: Math.max(
-                                    1,
-                                    Number(e.target.value) || 1,
-                                  ),
-                                })
-                              }
-                            />
-                          </label>
-                        )}
-                      </div>
-                    ))}
+                      )}
+                    </div>
+                  ))}
                 </div>
                 <div className="builder-summary">
                   <span>

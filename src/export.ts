@@ -1,5 +1,6 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import { getGrade } from "./grades";
 
 import {
   layoutPaper,
@@ -79,36 +80,43 @@ export async function exportPdf(
         size,
         color: rgb(0, 0, 0),
       });
-    text(paperTitle(w, solutions), PAPER.margin, 44, 18, true);
-    text(`2. třída   |   Varianta ${w.id}`, PAPER.margin, 76, 10);
-    if (solutions)
+    if (index === 0) {
+      text(paperTitle(w, solutions), PAPER.margin, 44, 18, true);
       text(
-        "Řešení patří ke stejnému označení varianty na zadání.",
+        `${getGrade(w.grade)}. třída   |   Varianta ${w.id}`,
         PAPER.margin,
-        105,
-        11,
+        76,
+        10,
       );
-    else
-      text(
-        "Jméno: __________________________    Datum: ______________",
-        PAPER.margin,
-        105,
-        12,
-      );
-    let y = PAPER.bodyTop;
+      if (solutions)
+        text(
+          "Řešení patří ke stejnému označení varianty na zadání.",
+          PAPER.margin,
+          105,
+          11,
+        );
+      else
+        text(
+          "Jméno: __________________________    Datum: ______________",
+          PAPER.margin,
+          105,
+          12,
+        );
+    }
+    let y = model.bodyTop;
     model.rows.forEach((row) => {
       row.cells.forEach((cell, c) => {
         const x =
           PAPER.margin + (c * (PAPER.width - 2 * PAPER.margin + 26)) / 2;
         if (row.rule)
           p.drawLine({
-            start: { x, y: PAPER.height - y - 20 },
+            start: { x, y: PAPER.height - y - (row.height - 7) },
             end: {
               x:
                 row.cells.length === 1
                   ? PAPER.width - PAPER.margin
                   : x + (PAPER.width - 2 * PAPER.margin - 26) / 2,
-              y: PAPER.height - y - 20,
+              y: PAPER.height - y - (row.height - 7),
             },
             thickness: 0.5,
             color: rgb(0.5, 0.5, 0.5),
@@ -196,33 +204,48 @@ export async function exportDocx(
       }),
     },
     children: [
-      new Paragraph({
-        heading: HeadingLevel.TITLE,
-        pageBreakBefore: pageIndex > 0,
-        spacing: {
-          before: 0,
-          after: 0,
-          line: pt(32),
-          lineRule: LineRuleType.EXACT,
-        },
-        children: [
-          new TextRun({
-            text: paperTitle(w, solutions),
-            bold: true,
-            size: 36,
-            color: "000000",
-            font: "Arial",
-          }),
-        ],
-      }),
-      para(`2. třída | Varianta ${w.id}`, 10, 29),
-      para(
-        solutions
-          ? "Řešení patří ke stejnému označení varianty na zadání."
-          : "Jméno: __________________________    Datum: ______________",
-        12,
-        40,
-      ),
+      ...(pageIndex === 0
+        ? [
+            new Paragraph({
+              heading: HeadingLevel.TITLE,
+              pageBreakBefore: pageIndex > 0,
+              spacing: {
+                before: 0,
+                after: 0,
+                line: pt(32),
+                lineRule: LineRuleType.EXACT,
+              },
+              children: [
+                new TextRun({
+                  text: paperTitle(w, solutions),
+                  bold: true,
+                  size: 36,
+                  color: "000000",
+                  font: "Arial",
+                }),
+              ],
+            }),
+            para(`${getGrade(w.grade)}. třída | Varianta ${w.id}`, 10, 29),
+            para(
+              solutions
+                ? "Řešení patří ke stejnému označení varianty na zadání."
+                : "Jméno: __________________________    Datum: ______________",
+              12,
+              40,
+            ),
+          ]
+        : [
+            new Paragraph({
+              pageBreakBefore: true,
+              spacing: {
+                before: 0,
+                after: 0,
+                line: pt(PAPER.continuationTop - 44),
+                lineRule: LineRuleType.EXACT,
+              },
+              children: [new TextRun({ text: "", size: 2 })],
+            }),
+          ]),
       ...page.rows.map(
         (row) =>
           new Paragraph({

@@ -326,5 +326,10 @@ export function makeSession(
 }
 export const signature = (q: Question) =>
   `${q.topic}:${q.prompt}:${q.text || ""}:${q.answers.join("/")}`;
-export const subjectTopics = (subject: Subject) =>
-  topics.filter((t) => t.subject === subject).map((t) => t.id);
+export const subjectTopics = (
+  subject: Subject,
+  grade: import("./grades").Grade = 2,
+) =>
+  topics
+    .filter((t) => t.subject === subject && t.grade === grade)
+    .map((t) => t.id);

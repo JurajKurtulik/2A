@@ -2257,3 +2257,59 @@ footer {
     -webkit-print-color-adjust: exact;
   }
 }
+
+.grade-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.grade-picker select {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  color: #284e43;
+  border: 1px solid #d5e2d9;
+  border-radius: 9px;
+  background: #fff;
+  padding: 7px 24px 7px 9px;
+  cursor: pointer;
+  max-width: 140px;
+}
+.mobile-grade {
+  display: none;
+}
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.history-filters [aria-pressed="true"] {
+  background: #e1eee5;
+  border-color: #537d65;
+  color: #284e43;
+}
+.grade-empty {
+  margin-top: 40px;
+}
+@media (max-width: 760px) {
+  .mobile-grade {
+    display: block;
+  }
+  .mobile-grade .grade-picker > span {
+    display: none;
+  }
+  .mobile-grade select {
+    font-size: 12px;
+    padding: 7px;
+    max-width: 100px;
+  }
+  .topbar-right {
+    gap: 8px;
+  }
+  .star-count {
+    display: none;
+  }
+}
