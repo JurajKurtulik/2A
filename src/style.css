@@ -1,4 +1,16 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap");
+@font-face {
+  font-family: PaperNoto;
+  src: url("/fonts/NotoSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: PaperNoto;
+  src: url("/fonts/NotoSans-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
 :root {
   font-family: "DM Sans", sans-serif;
   color: #263f36;
@@ -1732,5 +1744,516 @@ footer {
     transition: none !important;
     animation: none !important;
     scroll-behavior: auto !important;
+  }
+}
+.test-presets {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.test-presets > span {
+  width: 100%;
+  font-size: 10px;
+  color: var(--muted);
+}
+.test-card .test-presets .button {
+  width: auto;
+  flex: 1;
+  padding: 10px;
+  font-size: 10px;
+}
+.saved-worksheet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: #edf2e3;
+  padding: 20px;
+  border-radius: 14px;
+  margin: 24px 0;
+}
+.saved-worksheet strong {
+  font-family: Nunito;
+  font-size: 16px;
+}
+.saved-worksheet p {
+  font-size: 12px;
+  color: #7d8b70;
+  margin-bottom: 0;
+}
+.worksheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: #21392c70;
+  backdrop-filter: blur(5px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 25px;
+}
+.worksheet-dialog {
+  background: #fffef9;
+  border-radius: 22px;
+  width: min(960px, 100%);
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 90px #17301f40;
+  outline: none;
+  overflow: hidden;
+}
+.builder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  border-bottom: 1px solid var(--line);
+  padding: 24px 30px;
+}
+.builder-header h2 {
+  margin: 7px 0 0;
+  font-size: 22px;
+}
+.icon-button {
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+}
+.builder-body {
+  padding: 25px 30px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.builder-steps {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  font-size: 11px;
+  color: #9ba48f;
+}
+.builder-steps > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.builder-steps b {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #edf0e5;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+}
+.builder-steps .current {
+  color: #48683b;
+  font-weight: 700;
+}
+.builder-steps .current b {
+  background: #4f7654;
+  color: white;
+}
+.builder-body h3 {
+  font-size: 23px;
+  margin: 0 0 10px;
+}
+.builder-description {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #839178;
+  margin: 8px 0 20px;
+}
+.selection-shortcuts {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 15px;
+}
+.selection-shortcuts button {
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 11px;
+  color: #5d8050;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.builder-topics {
+  display: grid;
+  gap: 9px;
+}
+.builder-topic {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: white;
+  border: 1px solid #e4e9de;
+  border-radius: 12px;
+  padding: 14px 17px;
+}
+.builder-topic.chosen {
+  border-color: #b8cba2;
+  background: #f5f8ed;
+}
+.topic-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  cursor: pointer;
+  flex: 1;
+}
+.topic-checkbox input,
+.preview-controls input {
+  accent-color: #4f7654;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.topic-checkbox strong {
+  display: block;
+  font-size: 14px;
+}
+.topic-checkbox small {
+  display: block;
+  font-size: 11px;
+  color: #8b9780;
+  margin-top: 4px;
+  line-height: 1.6;
+}
+.count-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  color: #8b987f;
+}
+.count-input input {
+  width: 64px;
+  border: 1px solid #cbd8bb;
+  background: white;
+  border-radius: 7px;
+  padding: 8px;
+  font-size: 14px;
+  color: #476340;
+}
+.builder-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: #829273;
+}
+.mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin: 25px 0;
+}
+.mode-options button {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: flex-start;
+  gap: 15px;
+  border: 2px solid #e2e8d7;
+  background: white;
+  text-align: left;
+  padding: 25px;
+  border-radius: 15px;
+  color: #8a9b79;
+}
+.mode-options button.selected {
+  border-color: #7a9b5f;
+  background: #f1f6e7;
+}
+.mode-options strong {
+  font-family: Nunito;
+  font-size: 24px;
+  color: #48663c;
+}
+.mode-options span {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #87957a;
+}
+.mode-options button > svg:last-child:not(:first-child) {
+  position: absolute;
+  right: 17px;
+  top: 18px;
+}
+.variant-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+.variant-heading .button {
+  white-space: nowrap;
+}
+.worksheet-actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 10px 0 20px;
+}
+.preview-controls {
+  background: #f1f4e9;
+  border: 1px solid #dfe7d2;
+  border-radius: 10px;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 11px;
+}
+.preview-controls label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.preview-controls > span {
+  color: #8b987c;
+  white-space: nowrap;
+}
+.paper-scroll {
+  overflow: auto;
+  background: #e8eae4;
+  border: 1px solid #dce0d4;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-height: 65vh;
+}
+.paper-page {
+  font-family: PaperNoto, Arial, sans-serif;
+  flex: none;
+  color: #000;
+  background: #fff;
+  position: relative;
+  width: 595.28pt;
+  height: 841.89pt;
+  min-height: 841.89pt;
+  box-shadow: 0 2px 12px #0002;
+  zoom: 0.8;
+  overflow: hidden;
+}
+.paper-title {
+  position: absolute;
+  left: 54pt;
+  top: 44pt;
+  font-size: 18pt;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.paper-meta {
+  position: absolute;
+  left: 54pt;
+  top: 76pt;
+  font-size: 10pt;
+}
+.paper-name {
+  position: absolute;
+  left: 54pt;
+  top: 105pt;
+  font-size: 12pt;
+  white-space: pre;
+}
+.paper-row {
+  position: absolute;
+  left: 54pt;
+  right: 54pt;
+  display: grid;
+  gap: 26pt;
+  line-height: 1.4;
+  white-space: pre;
+}
+.paper-rule > span {
+  border-bottom: 0.5pt solid #888;
+  align-self: start;
+  height: 20pt;
+}
+.paper-footer {
+  position: absolute;
+  left: 54pt;
+  right: 54pt;
+  top: 795pt;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9pt;
+}
+.print-root {
+  display: none;
+}
+@media (max-width: 760px) {
+  .worksheet-overlay {
+    padding: 10px;
+  }
+  .worksheet-dialog {
+    border-radius: 15px;
+    max-height: 97dvh;
+  }
+  .builder-header {
+    padding: 19px 17px;
+  }
+  .builder-header h2 {
+    font-size: 18px;
+  }
+  .builder-header .eyebrow {
+    font-size: 7px;
+  }
+  .builder-body {
+    padding: 20px 16px;
+  }
+  .builder-steps {
+    font-size: 9px;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .builder-steps > span {
+    gap: 5px;
+  }
+  .builder-steps b {
+    width: 19px;
+    height: 19px;
+    font-size: 9px;
+    flex: none;
+  }
+  .builder-body h3 {
+    font-size: 21px;
+  }
+  .builder-topic {
+    padding: 12px;
+    gap: 9px;
+  }
+  .topic-checkbox {
+    gap: 8px;
+  }
+  .topic-checkbox strong {
+    font-size: 12px;
+  }
+  .topic-checkbox small {
+    font-size: 10px;
+  }
+  .count-input {
+    flex-direction: column;
+    gap: 5px;
+    font-size: 8px;
+    flex: none;
+  }
+  .count-input input {
+    width: 53px;
+    font-size: 13px;
+  }
+  .mode-options {
+    gap: 10px;
+  }
+  .mode-options button {
+    padding: 17px 14px;
+  }
+  .mode-options strong {
+    font-size: 21px;
+  }
+  .mode-options span {
+    font-size: 11px;
+  }
+  .variant-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-bottom: 20px;
+  }
+  .variant-heading .builder-description {
+    margin-bottom: 0;
+  }
+  .worksheet-actions .button {
+    flex: 1;
+    white-space: nowrap;
+    padding: 11px 12px;
+    font-size: 10px;
+  }
+  .preview-controls {
+    align-items: flex-start;
+    flex-direction: column;
+    font-size: 10px;
+    gap: 9px;
+  }
+  .paper-scroll {
+    padding: 15px;
+    align-items: flex-start;
+    max-height: 60vh;
+  }
+  .paper-page {
+    zoom: 0.52;
+  }
+  .builder-summary {
+    font-size: 11px;
+    gap: 9px;
+  }
+  .builder-summary .button {
+    font-size: 10px;
+    padding: 11px 12px;
+  }
+  .saved-worksheet {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .test-card .test-presets .button {
+    font-size: 10px;
+  }
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    width: 210mm !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body > *:not(.print-root) {
+    display: none !important;
+  }
+  .print-root {
+    display: block !important;
+  }
+  .paper-page {
+    display: block;
+    zoom: 1;
+    box-shadow: none;
+    width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
+    margin: 0 !important;
+    break-after: page;
+    page-break-after: always;
+  }
+  .paper-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

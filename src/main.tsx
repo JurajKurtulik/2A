@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowRight,
@@ -20,6 +20,14 @@ import {
 import { topics, type Question, type Subject } from "./content";
 import { isCorrect, makeSession, signature, subjectTopics } from "./engine";
 import "./style.css";
+import { WorksheetBuilder, type BuilderOptions } from "./WorksheetBuilder";
+import {
+  createWorksheet,
+  subjectName,
+  worksheetQuestions,
+  type Worksheet,
+} from "./worksheet";
+import { migrateProfileNames } from "./profiles";
 type RecordEntry = {
   date: string;
   label: string;
@@ -34,13 +42,18 @@ type Profile = {
   history: RecordEntry[];
   recent: string[];
 };
-type Data = { profiles: Profile[]; active: number };
+type Data = {
+  profiles: Profile[];
+  active: number;
+  profileNamesVersion?: number;
+};
 const initial: Data = {
   profiles: [
-    { name: "První průzkumnice", avatar: "🦊", history: [], recent: [] },
-    { name: "Druhá průzkumnice", avatar: "🐰", history: [], recent: [] },
+    { name: "Terezka", avatar: "🦊", history: [], recent: [] },
+    { name: "Nelinka", avatar: "🐰", history: [], recent: [] },
   ],
   active: 0,
+  profileNamesVersion: 1,
 };
 function readData(): Data {
   try {
@@ -55,11 +68,12 @@ function readData(): Data {
       ) &&
       (d.active === 0 || d.active === 1)
     )
-      return d;
+      return migrateProfileNames(d);
   } catch {}
   return initial;
 }
 type Session = {
+  worksheet?: Worksheet;
   questions: Question[];
   answers: Record<string, string>;
   firstAnswers: Record<string, string>;
@@ -76,7 +90,16 @@ function App() {
     [settings, setSettings] = useState(false),
     [storageError, setStorageError] = useState(false),
     [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [builder, setBuilder] = useState<BuilderOptions | null>(null),
+    [lastWorksheet, setLastWorksheet] = useState<Worksheet | null>(null);
   const profile = data.profiles[data.active];
+  useEffect(() => {
+    try {
+      localStorage.setItem("skola-hrou-v1", JSON.stringify(data));
+    } catch {
+      setStorageError(true);
+    }
+  }, []);
   function persist(next: Data) {
     setData(next);
     try {
@@ -105,7 +128,16 @@ function App() {
   }
   function start(ids: string[], label: string, test = false, count = 8) {
     const questions = makeSession(ids, count, profile.recent);
+    beginSession(questions, label, test);
+  }
+  function beginSession(
+    questions: Question[],
+    label: string,
+    test: boolean,
+    worksheet?: Worksheet,
+  ) {
     setSession({
+      worksheet,
       questions,
       answers: {},
       firstAnswers: {},
@@ -120,6 +152,16 @@ function App() {
       recent: [...questions.map(signature), ...profile.recent].slice(0, 250),
     });
     window.scrollTo(0, 0);
+  }
+  function startWorksheet(w: Worksheet) {
+    setBuilder(null);
+    setLastWorksheet(w);
+    beginSession(
+      worksheetQuestions(w),
+      `${subjectName(w.subject)} · varianta ${w.id}`,
+      true,
+      w,
+    );
   }
   function answer(value: string) {
     if (!session) return;
@@ -630,7 +672,8 @@ function App() {
               <span className="eyebrow">V KLIDU A BEZ ZNÁMEK</span>
               <h1>Zkus si písemku</h1>
               <p className="page-intro">
-                Odpovědi můžeš měnit. Správné řešení si ukážeme až na konci.
+                Vyber si učivo a počet příkladů. Písemku můžeš vyplnit online
+                nebo stáhnout a vytisknout.
               </p>
               <div className="test-grid">
                 {(["math", "czech"] as Subject[]).map((s) => (
@@ -650,34 +693,58 @@ function App() {
                     <button
                       className="button primary"
                       onClick={() =>
-                        start(
-                          subjectTopics(s),
-                          `${s === "math" ? "Matematika" : "Čeština"} · krátká písemka`,
-                          true,
-                          s === "math" ? 12 : 18,
-                        )
+                        setBuilder({ subject: s, preset: "custom" })
                       }
                     >
-                      Krátká písemka · {s === "math" ? 12 : 18} úloh{" "}
-                      <ArrowRight size={16} />
+                      Sestavit vlastní písemku <ArrowRight size={16} />
                     </button>
-                    <button
-                      className="button light"
-                      onClick={() =>
-                        start(
-                          subjectTopics(s),
-                          `${s === "math" ? "Matematika" : "Čeština"} · velká písemka`,
-                          true,
-                          s === "math" ? 24 : 27,
-                        )
-                      }
-                    >
-                      Větší výzva · {s === "math" ? 24 : 27} úloh
-                    </button>
+                    <div className="test-presets">
+                      <span>Rychlé předvolby · výběr lze upravit</span>
+                      <button
+                        className="button light"
+                        onClick={() =>
+                          setBuilder({ subject: s, preset: "short" })
+                        }
+                      >
+                        Krátká · {s === "math" ? 12 : 18} příkladů
+                      </button>
+                      <button
+                        className="button light"
+                        onClick={() =>
+                          setBuilder({ subject: s, preset: "long" })
+                        }
+                      >
+                        Delší · {s === "math" ? 24 : 27} příkladů
+                      </button>
+                    </div>
                   </section>
                 ))}
               </div>
             </>
+          )}
+          {!session && page === "tests" && lastWorksheet && (
+            <section className="saved-worksheet">
+              <div>
+                <strong>Poslední sestavená písemka</strong>
+                <p>
+                  {subjectName(lastWorksheet.subject)} · varianta{" "}
+                  {lastWorksheet.id} ·{" "}
+                  {worksheetQuestions(lastWorksheet).length} příkladů
+                </p>
+              </div>
+              <button
+                className="button light"
+                onClick={() =>
+                  setBuilder({
+                    subject: lastWorksheet.subject,
+                    preset: "custom",
+                    worksheet: lastWorksheet,
+                  })
+                }
+              >
+                Otevřít zadání a exporty <ArrowRight size={16} />
+              </button>
+            </section>
           )}
           {!session && page === "progress" && (
             <>
@@ -929,6 +996,21 @@ function App() {
                   </p>
                 )}
               <div className="result-buttons">
+                {" "}
+                {session.worksheet && (
+                  <button
+                    className="button light"
+                    onClick={() =>
+                      setBuilder({
+                        subject: session.worksheet!.subject,
+                        preset: "custom",
+                        worksheet: session.worksheet,
+                      })
+                    }
+                  >
+                    Stejné zadání na papír <ArrowRight size={16} />
+                  </button>
+                )}
                 {session.questions.some((q) => !correct(q)) && (
                   <button
                     className="button primary"
@@ -953,12 +1035,23 @@ function App() {
                 <button
                   className="button light"
                   onClick={() =>
-                    start(
-                      [...new Set(session.questions.map((q) => q.topic))],
-                      session.label,
-                      session.test,
-                      session.questions.length,
-                    )
+                    session.worksheet
+                      ? startWorksheet(
+                          createWorksheet(
+                            session.worksheet.subject,
+                            session.worksheet.sections.map((s) => ({
+                              topic: s.topic,
+                              count: s.questions.length,
+                            })),
+                            profile.recent,
+                          ),
+                        )
+                      : start(
+                          [...new Set(session.questions.map((q) => q.topic))],
+                          session.label,
+                          session.test,
+                          session.questions.length,
+                        )
                   }
                 >
                   Nová varianta <Sparkles size={17} />
@@ -1029,6 +1122,24 @@ function App() {
           <span>Vlastním tempem. S radostí.</span>
         </footer>
       </div>
+      {builder && (
+        <WorksheetBuilder
+          options={builder}
+          recent={profile.recent}
+          onClose={() => setBuilder(null)}
+          onGenerated={(w) => {
+            setLastWorksheet(w);
+            updateProfile({
+              ...profile,
+              recent: [
+                ...worksheetQuestions(w).map(signature),
+                ...profile.recent,
+              ].slice(0, 250),
+            });
+          }}
+          onOnline={startWorksheet}
+        />
+      )}
       {settings && (
         <div className="modal-overlay" onClick={() => setSettings(false)}>
           <section
