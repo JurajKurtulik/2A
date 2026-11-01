@@ -200,7 +200,7 @@ function App() {
     });
   }
   function checkAnswer() {
-    if (!session) return;
+    if (!session || session.test || session.done) return;
     const id = session.questions[session.index].id;
     setSession({
       ...session,
@@ -210,6 +210,17 @@ function App() {
         [id]: session.firstAnswers[id] ?? session.answers[id] ?? "",
       },
     });
+  }
+  function advanceExercise() {
+    if (!session || session.done) return;
+    const question = session.questions[session.index];
+    if (!session.test && !session.checked[question.id]) {
+      checkAnswer();
+    } else if (session.index < session.questions.length - 1) {
+      setSession({ ...session, index: session.index + 1 });
+    } else {
+      submit();
+    }
   }
   const totalCompleted = currentHistory.length,
     totalCorrect = currentHistory.reduce((n, h) => n + h.score, 0);
@@ -280,7 +291,7 @@ function App() {
             value={value}
             onChange={(e) => answer(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !session?.test) checkAnswer();
+              if (e.key === "Enter" && !session?.test) advanceExercise();
             }}
             placeholder="?"
             aria-label="Tvoje odpověď"
@@ -558,7 +569,6 @@ function App() {
         </nav>
         <div className="sidebar-bottom">
           <div className="class-badge">
-            <span>{grade}.</span>
             <div>
               {gradeSelect("sidebar-grade")}
               <small>Každý den o kousek dál</small>
@@ -1033,25 +1043,27 @@ function App() {
                     >
                       <ChevronLeft size={16} /> Předchozí
                     </button>
-                    {!session.test && (
-                      <button className="button light" onClick={checkAnswer}>
-                        Zkontrolovat <Check size={16} />
-                      </button>
-                    )}
-                    {session.index < session.questions.length - 1 ? (
-                      <button
-                        className="button primary"
-                        onClick={() =>
-                          setSession({ ...session, index: session.index + 1 })
-                        }
-                      >
-                        Další úloha <ArrowRight size={17} />
-                      </button>
-                    ) : (
-                      <button className="button primary" onClick={submit}>
-                        Vyhodnotit <Sparkles size={17} />
-                      </button>
-                    )}
+                    <button
+                      className={
+                        "button " +
+                        (!session.test && !checked ? "check-answer" : "primary")
+                      }
+                      onClick={advanceExercise}
+                    >
+                      {!session.test && !checked ? (
+                        <>
+                          Zkontrolovat <Check size={16} />
+                        </>
+                      ) : session.index < session.questions.length - 1 ? (
+                        <>
+                          Další úloha <ArrowRight size={17} />
+                        </>
+                      ) : (
+                        <>
+                          Vyhodnotit <Sparkles size={17} />
+                        </>
+                      )}
+                    </button>
                   </div>
                   <div className="question-dots" aria-label="Přejít na úlohu">
                     {session.questions.map((item, i) => (

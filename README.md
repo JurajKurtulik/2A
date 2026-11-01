@@ -10,6 +10,7 @@ Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky 
 - Jedna označená varianta pro online vyplňování, PDF, upravitelný Word i přímý tisk. Náhled a oddělené řešení pro rodiče používají stejnou sestavu. Nová zadání vznikají až po stisknutí „Nová varianta“.
 - Nové početní příklady generované podle rozsahu učiva; kontrolované zásoby českých slov a vět.
 - Doplňování čísel, výběr odpovědi, řazení kartiček klikáním i přetahováním, rozdělování slabik a opravy velkých písmen.
+- Běžné cvičení má jedno tlačítko: nejdřív Zkontrolovat s vysvětlením, potom Další úloha (na konci Vyhodnotit). Změna odpovědi znovu vyžaduje kontrolu. Písemka nabízí řešení a vysvětlení až po závěrečném vyhodnocení.
 - Vysvětlení řešení, procvičení obtížnějších témat a nové varianty.
 - Dva oddělené místní profily Terezka a Nelinka. Přejmenování původních profilů zachovává historii a vybraný profil. Historie zachovává výsledek před nápovědou i po opravě.
 - Responzivní rozhraní pro počítač a mobil/tablet, ovládání klávesnicí.

@@ -154,15 +154,6 @@ button:not(:disabled):active {
   padding: 13px 11px;
   border-radius: 12px;
 }
-.class-badge > span {
-  background: #f5efdf;
-  border: 1px solid #eee5ce;
-  padding: 9px 5px;
-  border-radius: 9px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #9c895b;
-}
 .class-badge strong,
 .class-badge small {
   display: block;
@@ -2312,4 +2303,18 @@ footer {
   .star-count {
     display: none;
   }
+}
+
+.grade-picker select {
+  background: #f5efdf;
+  border-color: #eee5ce;
+  color: #8b7646;
+}
+.button.check-answer {
+  background: #e5efdf;
+  border-color: #cadaba;
+  color: #365b39;
+}
+.button.check-answer:hover {
+  background: #d8e7cf;
 }
