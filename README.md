@@ -46,4 +46,3 @@ Workflow `.github/workflows/pages.yml` při změně větve `main` nainstaluje z�
 ## Další možnosti rozvoje
 
 Další ročníky, výběr období do písemek, export a import místního pokroku, nové typy úloh, namluvené pokyny nebo volitelná synchronizace. První verze zatím obsahuje učivo pro druhou třídu.
-
