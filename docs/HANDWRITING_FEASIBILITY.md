@@ -1,6 +1,6 @@
 # Posouzení: přepis pěti vět, QR nahrání a kontrola rukopisu
 
-Stav: návrh a proveditelnost, ne implementace. Ověřeno podle oficiální dokumentace 1. 11. 2026. Žádná fotografie se současnou aplikací neodesílá a žádný AI endpoint není zapojen.
+Aktualizace 2. 11. 2026: frontend samostatného přepisu a opakovaně použitelné kontroly fotografie je připravený, ale `enabled: false`; žádné fotografie se produkčně neodesílají. Azure backend vytvoří Copilot podle [potvrzeného zadání](COPILOT_AZURE_HANDOFF.md). Platná smlouva je [PHOTO_REVIEW_API.md](PHOTO_REVIEW_API.md); následující původní posouzení zachovává kontext a není aktuálním implementačním stavem. Potvrzená architektura nemá aplikační frontu ani přihlášení rodin, používá krátkodobé tokeny a serverové limity.
 
 ## Závěr
 

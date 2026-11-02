@@ -1,3 +1,6 @@
+import { HandwritingPractice } from "./HandwritingPractice";
+import { MobilePhotoUpload } from "./photo-review/MobilePhotoUpload";
+import { readUploadLink } from "./photo-review/contracts";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -99,6 +102,8 @@ function App() {
     [dragIndex, setDragIndex] = useState<number | null>(null);
   const [builder, setBuilder] = useState<BuilderOptions | null>(null),
     [lastWorksheet, setLastWorksheet] = useState<Worksheet | null>(null);
+  const [handwritingDirty, setHandwritingDirty] = useState(false);
+  const hasUnfinished = Boolean(session && !session.done) || handwritingDirty;
   const profile = data.profiles[data.active];
   const grade = getGrade(profile.grade);
   const currentTopics = topicsForGrade(grade);
@@ -133,12 +138,12 @@ function App() {
   }
   function navigate(next: string) {
     if (
-      session &&
-      !session.done &&
+      hasUnfinished &&
       !window.confirm("Odejít ze cvičení? Rozpracované odpovědi se neuloží.")
     )
       return;
     setSession(null);
+    setHandwritingDirty(false);
     setPage(next);
     window.scrollTo(0, 0);
   }
@@ -489,12 +494,12 @@ function App() {
   }
   function changeGrade(value: string) {
     if (
-      session &&
-      !session.done &&
+      hasUnfinished &&
       !confirm("Změnou třídy opustíš rozpracované cvičení. Pokračovat?")
     )
       return;
     setSession(null);
+    setHandwritingDirty(false);
     setBuilder(null);
     setHistoryFilter("all");
     updateProfile({ ...profile, grade: getGrade(Number(value)) });
@@ -585,7 +590,11 @@ function App() {
           <div className="breadcrumb">
             Naše škola <ChevronRight size={14} />
             <strong>
-              {session ? "Cvičení" : nav.find((n) => n[0] === page)?.[1]}
+              {session
+                ? "Cvičení"
+                : page === "handwriting"
+                  ? "Přepis vět"
+                  : nav.find((n) => n[0] === page)?.[1]}
             </strong>
           </div>
           <div className="topbar-right">
@@ -750,8 +759,67 @@ function App() {
                   pustíme?
                 </p>
                 {topicCards(page)}
+                {page === "czech" && grade === 2 && (
+                  <button
+                    className="topic-card czech handwriting-card"
+                    onClick={() => navigate("handwriting")}
+                  >
+                    <span className="topic-icon">✍️</span>
+                    <span className="topic-info">
+                      <strong>Přepis na papír</strong>
+                      <small>
+                        Pět vět, papír a tužka. Připravovaná kontrola fotkou.
+                      </small>
+                      <span className="tag">50 sad · 5 vět</span>
+                    </span>
+                    <ArrowRight size={19} />
+                  </button>
+                )}
               </>
             )}
+          {!session && page === "handwriting" && grade === 2 && (
+            <HandwritingPractice
+              key={`${data.active}-${grade}`}
+              recent={profile.recent}
+              onWorkingChange={setHandwritingDirty}
+              onChosen={(key) =>
+                updateProfile({
+                  ...profile,
+                  recent: [
+                    key,
+                    ...profile.recent.filter((r) => r !== key),
+                  ].slice(0, 2000),
+                })
+              }
+              onBack={() => navigate("czech")}
+              onComplete={(result) => {
+                if (profile.history.some((h) => h.variant === result.variant))
+                  return;
+                updateProfile({
+                  ...profile,
+                  history: [
+                    {
+                      date: new Date().toISOString(),
+                      label: "Přepis pěti vět · kontrola potvrzená rodičem",
+                      kind: "practice",
+                      grade: 2,
+                      variant: result.variant,
+                      score: result.correct,
+                      total: result.total,
+                      topics: [
+                        {
+                          id: "g2-czech-transcription",
+                          right: result.correct,
+                          total: result.total,
+                        },
+                      ],
+                    },
+                    ...profile.history,
+                  ],
+                });
+              }}
+            />
+          )}
           {!session && currentTopics.length > 0 && page === "tests" && (
             <>
               <span className="eyebrow">V KLIDU A BEZ ZNÁMEK</span>
@@ -1302,14 +1370,14 @@ function App() {
                   aria-label={`Vybrat profil ${p.name}`}
                   onClick={() => {
                     if (
-                      session &&
-                      !session.done &&
+                      hasUnfinished &&
                       !confirm(
                         "Změnou profilu opustíš rozpracované cvičení. Pokračovat?",
                       )
                     )
                       return;
                     setSession(null);
+                    setHandwritingDirty(false);
                     persist({ ...data, active: i });
                     setSettings(false);
                   }}
@@ -1364,8 +1432,32 @@ function App() {
     </div>
   );
 }
+function Entry() {
+  const [route] = useState(() => {
+    try {
+      return { upload: readUploadLink(location.hash) };
+    } catch {
+      return {
+        upload: null,
+        error: "Odkaz pro nahrání fotky není platný. Naskenuj nový QR kód.",
+      };
+    }
+  });
+  if (route.error)
+    return (
+      <main className="mobile-photo">
+        <h1>Propojení se nepodařilo</h1>
+        <p role="alert">{route.error}</p>
+      </main>
+    );
+  return route.upload ? (
+    <MobilePhotoUpload id={route.upload.id} token={route.upload.token} />
+  ) : (
+    <App />
+  );
+}
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <Entry />
   </React.StrictMode>,
 );

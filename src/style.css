@@ -2318,3 +2318,198 @@ footer {
 .button.check-answer:hover {
   background: #d8e7cf;
 }
+/* Shared photo review widget; no model credentials or photo persistence in the browser. */
+.handwriting-card {
+  margin-top: 20px;
+  width: 100%;
+}
+.transcription-sentences {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 25px 35px 25px 60px;
+  font-size: 22px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.transcription-sentences li {
+  padding: 8px 0;
+}
+.handwriting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+.photo-review {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 28px;
+  margin: 28px 0;
+}
+.photo-review-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.photo-review-heading h2 {
+  margin: 0 0 5px;
+}
+.photo-review-heading p {
+  margin: 0;
+  color: #758478;
+}
+.review-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 20px 0;
+  color: #586c61;
+  max-width: 800px;
+}
+.review-consent input {
+  flex-shrink: 0;
+  width: 19px;
+  height: 19px;
+  margin-top: 3px;
+  accent-color: #38694f;
+}
+.photo-review-connect {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+.photo-review-connect figure {
+  margin: 10px 0;
+  text-align: center;
+}
+.photo-review-connect figcaption {
+  font-size: 13px;
+  color: #607468;
+  line-height: 1.6;
+}
+.photo-file {
+  position: relative;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+}
+.photo-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.photo-file:focus-within {
+  outline: 3px solid #dca94e;
+  outline-offset: 3px;
+}
+.photo-preview {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.photo-preview img,
+.mobile-photo-preview {
+  display: block;
+  max-width: min(100%, 440px);
+  max-height: 420px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.photo-recognition > label {
+  display: block;
+  margin: 16px 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.photo-recognition textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 85px;
+  margin-top: 7px;
+  padding: 12px;
+  font: inherit;
+  font-size: 18px;
+  border: 1px solid #c8d8cb;
+  border-radius: 10px;
+  resize: vertical;
+}
+.photo-recognition .review-consent {
+  display: flex;
+}
+.uncertain {
+  color: #90611c;
+}
+.mobile-photo {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 22px;
+}
+.mobile-photo > .button {
+  margin: 8px 12px 8px 0;
+}
+.mobile-photo h1 {
+  font-size: 32px;
+}
+.mobile-photo > p {
+  line-height: 1.7;
+}
+.transcription-result {
+  margin: 24px 0;
+}
+.handwriting-paper {
+  font: 18pt/1.5 Arial;
+  color: #000;
+  padding: 44pt 54pt;
+  width: 595.28pt;
+  box-sizing: border-box;
+}
+.handwriting-paper h1 {
+  font-size: 20pt;
+  margin: 0 0 10pt;
+}
+.handwriting-paper > p {
+  font-size: 11pt;
+  margin: 8pt 0;
+}
+.handwriting-paper section {
+  break-inside: avoid;
+  margin-top: 16pt;
+}
+.handwriting-paper section p {
+  margin: 0;
+  font-size: 18pt;
+}
+.handwriting-rule {
+  height: 54pt;
+  border-bottom: 1px solid #888;
+}
+@media (max-width: 760px) {
+  .photo-review {
+    padding: 20px;
+  }
+  .transcription-sentences {
+    font-size: 19px;
+    padding: 18px 20px 18px 45px;
+  }
+  .photo-review-connect {
+    gap: 14px;
+  }
+  .photo-review .button {
+    max-width: 100%;
+    white-space: normal;
+  }
+}

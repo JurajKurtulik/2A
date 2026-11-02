@@ -10,7 +10,7 @@ Rodič může zadat například: „Přidej do 3. třídy, matematika, násobilk
 
 1. V `src/content.ts` přidat téma s jednoznačným stabilním ID, `grade`, `subject`, popisem a ikonou. ID existujících témat neměnit, protože ho používá historie. Stejné téma jiného ročníku má vlastní ID, například `g3-math-times6`.
 2. V `src/engine.ts` doplnit generátor nebo kontrolovanou zásobu variant a odpovědí. Nepřekračovat zadaný rozsah; řešení musí být věcně správná. U češtiny uvést ověřené alternativy. Nedávné příklady omezovat podle stávajícího mechanismu.
-3. Použít existující typ interakce. Nový typ doplnit do `Kind`, UI, vyhodnocení i papírového převodu. Pro online formu nyní vynecháváme diktáty a ruční přepis; psaní vět je možné v papírovém převodu.
+3. Použít existující typ interakce. Nový typ doplnit do `Kind`, UI, vyhodnocení i papírového převodu. Diktáty zatím vynecháváme. Ruční přepis je nová samostatná aktivita: pět vět na obrazovce/papíře, opakovatelná komponenta kontroly fotografie a potvrzení OCR rodičem; služba čeká na připojení Azure backendu.
 4. Doplnit pokyn a převod v `src/worksheet.ts`. Nastavení `Topic.paper` určuje velikost písma, výšku řádku, prostor pro psaní, mezery a sloupce pro PDF, Word i tisk. U práce s textem ponechat větší písmo a dostatek místa pro dětské psaní. Hlavička se zobrazuje jen na první stránce; pokračování má více využitelného prostoru. Řešení vždy zvlášť.
 5. Katalog filtrovat přes `topicsForGrade(grade, subject)`; výběr do písemky validovat včetně ročníku. Počty předvoleb vycházejí z dostupných témat. Nemíchat do testu učivo z jiného ročníku.
 6. Spustit `npm test` a `npm run build`, ověřit interakci a dokončení online písemky. Zkontrolovat PDF i Word vizuálně, stránkování, psací prostor a nepřítomnost odpovědí v zadání.
@@ -31,7 +31,7 @@ Data zůstávají jen v místním prohlížeči (`skola-hrou-v1`). Historie ucho
 - Početní generátory: zachovat logické generování a omezení učiva, neukládat zbytečně hotové číselné příklady.
 - Pevná jazyková zásoba: nejméně **100 různých zadání na samostatný okruh**. U třídění druhů vět nejméně **100 oznamovacích + 100 tázacích + 100 rozkazovacích vět**; nerozdělovat společnou stovku mezi druhy. Di/dy/ti/ty/ni/ny a dě/tě/ně jsou dvě banky s nejméně 100 různými slovy v každé; jednotlivé slabiky jsou možnosti odpovědi, ne další oddělené okruhy. Dbát na zastoupení všech možností.
 - Příběhové šablony s generovanými čísly: nejméně **25 obsahově odlišných situací** na okruh. Výměna jména, předmětu nebo čísel v jedné větě se nepočítá jako nová situace.
-- Budoucí ruční přepis: nejméně **50 různých sad po pěti větách** (250 vět), při přípravě obsahových zásob preferovat 100 variant, pokud to učivo přirozeně dovoluje. Přepis s fotkou a AI zatím není implementován; viz `HANDWRITING_FEASIBILITY.md`.
+- Budoucí ruční přepis: nejméně **50 různých sad po pěti větách** (250 vět), při přípravě obsahových zásob preferovat 100 variant, pokud to učivo přirozeně dovoluje. Frontend má 50 sad po pěti větách (250 odlišných vět ze stávajících bank); cloudové vyhodnocení čeká na druhou fázi. Viz `PHOTO_REVIEW_COMPONENT.md`.
 - U kombinatorických úloh jako abeceda nejméně 100 různých zdrojových slov. U nadřazených pojmů nejméně 100 slov celkem, s přirozenými skupinami; netvořit například 100 dnů týdne. Další samostatné klasifikační úlohy mají vlastní minimum, nikoli společný rozpočet pro celý předmět.
 - Pro kvóty nepočítat zamíchané kartičky, pořadí nabídek, alternativní správné řešení, opačné pořadí téže dvojice nebo záměnu pouze jména jako nový obsah. Varianty musí odpovídat věku i zadanému učivu. Obtížné či nejednoznačné slovo opatřit kontextem nebo nahradit.
 - Pevné banky jsou v `src/banks/`, katalog témat zůstává v `src/content.ts`. Nový ročník má vlastní soubor a stabilní ID témat. Neměnit význam starých ID.
@@ -42,3 +42,7 @@ Data zůstávají jen v místním prohlížeči (`skola-hrou-v1`). Historie ucho
 U konečných bank se vybírá ze skutečných položek, nikoli opakovaným náhodným losováním s nejistým výsledkem. V jedné sérii nesmí být stejná položka dvakrát. Profil si pamatuje až 2 000 nedávných otisků zadání; dokud existují nepoužité položky, preferují se. Po vyčerpání se vrací nejdéle nepoužitá položka. Slovní úlohy mají otisk podle příběhové šablony, aby se stejný příběh nevracel jen s jinými čísly. Vybraná písemka při stažení nemění zadání.
 
 Nejde o slib nekonečně nového obsahu: při 100 větách a deseti písemkách po 20 větách se opakování nevyhneme. Omezení je na profil a tento prohlížeč, sdílené mezi online cvičením a generováním písemek. Rozmanitost se počítá po tématech, nikoli podle počtu možných permutací.
+
+## Opakované použití kontroly fotkou
+
+Nové úlohy využívají komponentu `PhotoReview` a API v1 popsané v `PHOTO_REVIEW_COMPONENT.md` a `PHOTO_REVIEW_API.md`. Fotku, QR, tokeny, expiraci a přenos neimplementovat znovu. V1 umí přepis 1–5 textových položek, jiný způsob hodnocení vyžaduje explicitní rozšíření `kind`, validace a backendu. Modelové instrukce nejsou volný text z klienta. Souhrnné skóre lze uložit až po rodičovském potvrzení rozpoznaného textu, ne samotným uploadem. Model, endpoint a tajemství jsou pouze v backendu.

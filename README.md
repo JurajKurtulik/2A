@@ -62,9 +62,19 @@ Pevné banky vybírají nejdříve dosud nepoužitá zadání a po vyčerpání 
 
 Pro nová témata platí minima a metodika v [CONTENT_GUIDE.md](docs/CONTENT_GUIDE.md). Zásoby jsou oddělené v `src/banks/`; změna pořadí kartiček nebo jména neplní kvótu nového obsahu.
 
-## Posouzení přepisu a kontroly fotkou
+## Přepis na papír a kontrola fotkou
 
-[HANDWRITING_FEASIBILITY.md](docs/HANDWRITING_FEASIBILITY.md) popisuje možné propojení počítače a mobilu přes QR, potřebný backend a nejistoty čtení dětského rukopisu. Jde pouze o posouzení. Upload, AI endpoint ani nová úloha přepisu nejsou implementované.
+V češtině pro 2. třídu je nová samostatná aktivita **Přepis na papír**: 50 sad po pěti větách (250 různých vět), tisk nebo uložení přes PDF tiskový dialog. Sada respektuje nedávnou historii profilu. Nový přepis se zatím nevkládá do smíšených písemek.
+
+První fáze obsahuje opakovaně použitelnou komponentu **PhotoReview**: QR propojení mobilu, přímý výběr fotky, zmenšení a odstranění EXIF, kontrolu vazby výsledku k zadání a ruční potvrzení OCR rodičem. Po potvrzení ukládá jen souhrnné skóre do místních pokroků. Fotky, přepsaný text a tokeny nezapisuje do localStorage. Uživatelé nepotřebují účet.
+
+**Produkční nahrávání je zatím vypnuté** v `public/photo-review-config.json`. Věty lze už přepisovat a tisknout, rodič je zatím kontroluje sám. Žádné obrázky se neodesílají ani se nevytváří falešné AI výsledky.
+
+- [Dokumentace znovupoužitelné komponenty](docs/PHOTO_REVIEW_COMPONENT.md)
+- [Přesná smlouva API v1](docs/PHOTO_REVIEW_API.md)
+- **[Hotové zadání druhé fáze pro GitHub Copilot a Azure MCP](docs/COPILOT_AZURE_HANDOFF.md)**
+
+Potvrzené prostředky jsou v UK South, model GPT-6.1 Sol v Global Standard, Functions Flex on demand + privátní Blob Storage + Key Vault, bez aplikační fronty. Backend zavede časově omezené owner/upload tokeny, atomické limity placených volání a automatické mazání. Po nasazení potřebujeme skutečný veřejný Function API base URL; modelové klíče ani modelový endpoint nepatří do webu.
 
 ## Jak přidávat učivo
 
