@@ -3,13 +3,14 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 import { transcriptionSets } from "./banks/transcription-grade2";
 import { shuffle } from "./engine";
-import { PhotoReview, type ConfirmedReview } from "./photo-review/PhotoReview";
+import { randomId } from "./random-id";
+import { PhotoReview, type PhotoReviewResult } from "./photo-review/PhotoReview";
 import {
-  explainTranscriptionDifference,
   compareTranscription,
+  transcriptionDifferences,
   type ReviewAssignment,
 } from "./photo-review/contracts";
-export type TranscriptionResult = ConfirmedReview & { variant: string };
+export type TranscriptionResult = PhotoReviewResult & { variant: string };
 function nextSet(recent: string[]) {
   const sets = shuffle(transcriptionSets);
   return (
@@ -39,7 +40,7 @@ export function HandwritingPractice({
   const [assignment, setAssignment] = useState<ReviewAssignment>(() =>
     makeAssignment(set),
   );
-  const [result, setResult] = useState<ConfirmedReview | null>(null);
+  const [result, setResult] = useState<PhotoReviewResult | null>(null);
   useEffect(() => {
     onWorkingChange(!result);
     return () => onWorkingChange(false);
@@ -50,7 +51,7 @@ export function HandwritingPractice({
   function makeAssignment(value: typeof set): ReviewAssignment {
     return {
       schemaVersion: 1,
-      id: crypto.randomUUID(),
+      id: randomId(),
       kind: "transcription",
       grade: 2,
       subject: "czech",
@@ -104,39 +105,34 @@ export function HandwritingPractice({
       <PhotoReview
         key={assignment.id}
         assignment={assignment}
-        onConfirmed={(confirmed) => {
-          setResult(confirmed);
-          onComplete({ ...confirmed, variant: assignment.id });
+        onComplete={(review) => {
+          setResult(review);
+          onComplete({ ...review, variant: assignment.id });
         }}
       />
       {result && (
         <section className="transcription-result" aria-label="Výsledek přepisu">
           <h2>
-            Správně přepsané věty: {result.correct} / {result.total}
+            {result.correct === result.total
+              ? "Všechny věty jsou správně."
+              : `Nalezeny chyby ve ${result.total - result.correct} z ${result.total} vět.`}
           </h2>
-          <p>
-            Výsledek potvrzený rodičem se uložil do tvých pokroků. Úhlednost
-            písma se nehodnotí.
-          </p>
           {compareTranscription(assignment, result.texts).map((row, i) => (
             <article
               key={row.id}
               className={"feedback " + (row.correct ? "good" : "bad")}
             >
               <strong>
-                Věta {i + 1}:{" "}
-                {row.correct ? "Povedlo se" : "Podívejme se na rozdíl"}
+                Věta {i + 1}: {row.correct ? "Povedlo se" : "Nalezené rozdíly"}
               </strong>
-              <p>Na papíře: {row.recognizedText || "Věta nebyla přepsaná."}</p>
               {!row.correct && (
                 <>
-                  <p>Vzor: {row.expectedText}</p>
-                  <p>
-                    {explainTranscriptionDifference(
-                      row.expectedText,
-                      row.recognizedText,
+                  <p>Zadání: {row.expectedText}</p>
+                  <ul>
+                    {transcriptionDifferences(row.expectedText, row.recognizedText).map(
+                      (difference, index) => <li key={`${row.id}-${index}`}>{difference}</li>,
                     )}
-                  </p>
+                  </ul>
                 </>
               )}
             </article>

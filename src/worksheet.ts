@@ -1,6 +1,7 @@
 import { subjects, topics, type Question, type Subject } from "./content";
 import { makeSession, signature } from "./engine";
 import { DEFAULT_GRADE, type Grade } from "./grades";
+import { randomId } from "./random-id";
 
 export type TopicSelection = { topic: string; count: number };
 export type Worksheet = {
@@ -50,7 +51,7 @@ export function createWorksheet(
     topic: s.topic,
     questions: makeSession([s.topic], s.count, recent),
   }));
-  const id = crypto.randomUUID().slice(0, 8).toUpperCase();
+  const id = randomId().slice(0, 8).toUpperCase();
   return {
     id,
     grade,

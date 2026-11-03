@@ -1,0 +1,9 @@
+node_modules/.cache/
+tests/
+scripts/
+src/
+local.settings.json
+.azurite/
+*.log
+README.md
+connection-output.json

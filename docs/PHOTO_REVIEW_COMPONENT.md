@@ -3,11 +3,11 @@
 ## Fáze 1 – implementováno
 
 - Čeština pro 2. třídu má samostatné „Přepis na papír“ s 50 sadami po pěti větách, celkem 250 odlišných vět ze stávajících ověřených bank. Sady mají stabilní ID a výběr respektuje nedávnou historii profilu.
-- `PhotoReview` je samostatná komponenta, nikoli součást pravidel češtiny. Dostává neměnné `ReviewAssignment` a callback `onConfirmed`. Umí připravit QR, přímý upload, pollování, expiraci, chyby a potvrzení OCR rodičem. Fotografie ani rozpoznané věty se neukládají do localStorage.
+- `PhotoReview` je samostatná komponenta, nikoli součást pravidel češtiny. Dostává neměnné `ReviewAssignment` a po dokončení OCR automaticky předá výsledek hostitelské aktivitě. Fotografie ani rozpoznané věty se neukládají do localStorage.
 - `MobilePhotoUpload` se otevře na stejné GitHub Pages adrese s fragmentem `#photo-upload=<id>&token=<uploadToken>`. Není potřeba serverový routing ani změna hostingové cesty `/2A/`. Fragment se po načtení odstraní z adresy a drží pouze v paměti; obnovení telefonu vyžaduje nové naskenování QR. Odkaz neobsahuje read token, identitu dítěte, obsah zadání, klíč modelu ani adresu libovolného backendu.
 - QR kódy vznikají lokálně přes `qrcode`, ne přes externí generátor. Veřejná konfigurace je `public/photo-review-config.json`. Při disabled se nenahrává žádná fotka, nevolá žádný model a nevzniká zdánlivý výsledek.
 - Přepis lze vytisknout nebo uložit jako PDF přes tiskový dialog prohlížeče. Pro psaní je vysoký řádek u každé věty. Tato samostatná aktivita se zatím nevkládá do smíšených testů a nemá Word export.
-- Do pokroků jde až rodičem potvrzený výsledek: skóre 0–5, ročník, datum a ID varianty. Obsah rukopisu ani obraz v historii není. Výměna zadání, profilu nebo ročníku upozorní na rozpracovanou kontrolu. Po reloadu se rozpracovaná aktivita neobnovuje; server ji nechá expirovat.
+- Do pokroků jde po automatickém OCR výsledek porovnání se vzorem: skóre 0–5, ročník, datum a ID varianty. Uživateli se ukáže pouze informace, zda je věta správně, nebo její rozdíly; rozpoznaný přepis se nezobrazuje. OCR může text přečíst chybně, proto rozdíl není zárukou chyby dítěte. Obsah rukopisu ani obraz v historii není. Výměna zadání, profilu nebo ročníku upozorní na rozpracovanou kontrolu. Po reloadu se rozpracovaná aktivita neobnovuje; server ji nechá expirovat.
 
 ## Použití v další úloze
 
@@ -15,7 +15,7 @@
 <PhotoReview
   key={assignment.id}
   assignment={assignment}
-  onConfirmed={(result) => {
+  onComplete={(result) => {
     // result: assignmentId, texts keyed by item ID, correct, total
     // Host decides how to persist the aggregate score for its profile/session.
   }}
@@ -24,7 +24,7 @@
 
 Každá nová varianta musí mít nové náhodné assignment ID; během čekání ho neměnit. `items` mají stabilní jedinečná ID a očekávané texty. V1 podporuje kontrolu textového přepisu 1–5 položek, nikoli libovolné matematické výkresy či geometrii. Pro jinou metodu hodnocení přidat explicitní `kind`, validátor a backend handler; nevkládat do klientského zadání volný systémový prompt. Stejný transport/QR/upload/stavy lze využít beze změny.
 
-Rodičovské potvrzení není přihlášení. Na přání uživatele není Entra login ani účet rodiny. Krátkodobé owner/upload tokeny chrání jednotlivé relace, ne veřejný vznik nových relací. Ochranu nákladů tvoří serverové limity a atomická počítadla. Cizí člověk může vyčerpat limit; toto je přijatý kompromis otevřeného webu pro malou skupinu.
+Frontend nevyžaduje potvrzovací checkbox před založením kontroly ani uploadem. Krátkodobé owner/upload tokeny chrání jednotlivé relace, ne veřejný vznik nových relací. Ochranu nákladů tvoří serverové limity a atomická počítadla. Cizí člověk může vyčerpat limit; toto je přijatý kompromis otevřeného webu pro malou skupinu.
 
 ## Zapojení backendu – fáze 2
 
@@ -42,4 +42,4 @@ na skutečnou HTTPS adresu, například tvar `{"enabled":true,"apiBaseUrl":"http
 
 `npm test` zahrnuje 50 sad/250 vět, korelaci digestu a výsledku, vadné výsledky, oddělení oprávnění, bezpečnost konfigurace a chybové HTTP stavy. `npm run build` ověřuje produkční výstup. Backend a reálná přesnost OCR budou ověřeny po vytvoření Azure části; frontendový test s mockem není doklad kvality modelu.
 
-Přesný počet chybných znaků a automatické hodnocení úhlednosti zatím neposkytujeme. Uvádíme správně přepsané věty a první konkrétní rozdíl. Potvrzený prázdný přepis se počítá jako chybějící věta. OCR může být nejisté i bez příznaku uncertain; rodič kontroluje všechny věty.
+Porovnání vypsává jednotlivě rozdílná slova, včetně diakritiky a velikosti písmen, a chybějící/přebývající či změněnou interpunkci. Mezery se při skórování normalizují. OCR může rukopis přečíst chybně i bez příznaku `uncertain`; výsledek proto není jistota autorství chyby. Úhlednost písma se nehodnotí.

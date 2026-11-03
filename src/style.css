@@ -2362,23 +2362,6 @@ footer {
   margin: 0;
   color: #758478;
 }
-.review-consent {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 20px 0;
-  color: #586c61;
-  max-width: 800px;
-}
-.review-consent input {
-  flex-shrink: 0;
-  width: 19px;
-  height: 19px;
-  margin-top: 3px;
-  accent-color: #38694f;
-}
 .photo-review-connect {
   display: flex;
   align-items: center;
@@ -2428,27 +2411,16 @@ footer {
   border: 1px solid var(--line);
   border-radius: 12px;
 }
-.photo-recognition > label {
-  display: block;
+.photo-recognition-item {
   margin: 16px 0;
-  font-size: 14px;
-  font-weight: 700;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfa;
 }
-.photo-recognition textarea {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 85px;
-  margin-top: 7px;
-  padding: 12px;
-  font: inherit;
-  font-size: 18px;
-  border: 1px solid #c8d8cb;
-  border-radius: 10px;
-  resize: vertical;
-}
-.photo-recognition .review-consent {
-  display: flex;
+.photo-recognition-item p {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
 }
 .uncertain {
   color: #90611c;

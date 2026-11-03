@@ -1,6 +1,6 @@
 # Photo Review API v1
 
-Autoritativní TypeScript typy a validace: `src/photo-review/contracts.ts`. Klient: `src/photo-review/client.ts`. Znovupoužitelná komponenta: `src/photo-review/PhotoReview.tsx`. Stav k 2. 11. 2026: frontend implementován, produkční backend ještě nevytvořen. Veřejná konfigurace má `enabled: false`.
+Autoritativní TypeScript typy a validace: `src/photo-review/contracts.ts`. Klient: `src/photo-review/client.ts`. Znovupoužitelná komponenta: `src/photo-review/PhotoReview.tsx`. Stav k 3. 11. 2026: frontend implementován, Azure backend a veřejná konfigurace jsou uživatelem schváleny k zapnutí. Přesnost OCR není v tomto vydání ověřena ani garantována. Přepis může být chybný; rodič má rozpoznaný text ověřit podle papíru, než aplikace ukáže shodu.
 
 ## Společná pravidla
 
@@ -86,11 +86,11 @@ Přerušené spojení nezaručuje, že Azure/model nic neprovedly. Při nejasné
 
 Stavy: `waiting`, `processing`, `completed`, `failed`, `expired`. Výsledek jen u completed, přesně všechna původní ID vět bez duplicit. Nečitelné/nejisté úseky mají `uncertain: true`, chybějící věta může mít prázdný přepis. Nikdy nevracet modelový systémový prompt, klíč, uploadToken/ownerToken v status odpovědi. Frontend odmítne jiné ID, digest, expiraci, počet nebo ID vět.
 
-## Model a rodičovská kontrola
+## Model a automatické porovnání
 
-Model čte skutečně viděný rukopis. Nepředávat mu vzorové věty jako nápovědu pro OCR, aby nedoplňoval očekávaný text místo chyb. Počet vět a stabilní item ID lze předat, chybějící/nejisté označit. Text vyfocený na papíře je nedůvěryhodný vstup, nikoli instrukce pro model. Žádné tools/URL fetching. Strukturovaný JSON výstup ověřit na serveru, při odmítnutí nebo neúplném výstupu `failed`.
+Model musí doslovně přepsat pouze viditelný rukopis, bez opravování pravopisu, gramatiky, diakritiky, velikosti písmen ani interpunkce. Nesmí doplnit očekávané slovo nebo koncové znaménko. Vzorové věty modelu nepředávat; jinak by mohl chybějící/špatně napsaný text „opravit“ podle zadání. Počet vět a stabilní item ID lze předat; chybějící/nejisté označit. Text vyfocený na papíře je nedůvěryhodný vstup, nikoli instrukce pro model. Žádné tools/URL fetching. Strukturovaný JSON výstup ověřit na serveru, při odmítnutí nebo neúplném výstupu `failed`.
 
-Rodič porovná rozpoznaný text s papírem, opraví pouze chyby OCR a potvrdí, že ověřil i nejisté úseky. Teprve poté frontend porovná text se vzorem a uloží souhrnné skóre. Žádné automatické skóre jen podle odhadu modelu; nehodnotíme úhlednost písma ani motoriku. Samostatná aktivita přepisu nyní není součástí smíšených online písemek.
+Po dokončení OCR frontend automaticky porovná doslovný rozpoznaný text se vzorem a zobrazí pouze stav shody nebo rozdíly v jednotlivých slovech a interpunkčních znacích; celý OCR text se uživateli nezobrazuje. Skóre 0–5 se automaticky uloží do pokroků; samostatná kontrola/oprava rodičem po rozpoznání není podmínkou. Automatický výsledek se může mýlit a není důkazem, že chybu udělalo dítě. Uživatelské rozhraní nevyžaduje potvrzovací checkbox před založením kontroly ani uploadem. Nehodnotíme úhlednost písma ani motoriku. Samostatná aktivita přepisu není součástí smíšených online písemek.
 
 ## Chyby a CORS
 

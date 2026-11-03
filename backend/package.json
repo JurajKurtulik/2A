@@ -1,0 +1,28 @@
+{
+  "name": "skolahrou-photo-review-backend",
+  "private": true,
+  "version": "1.0.0",
+  "main": "dist/functions.js",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test tests/*.test.ts",
+    "start": "func start",
+    "test:integration": "tsx --test tests/blob.integration.ts"
+  },
+  "dependencies": {
+    "@azure/core-auth": "^1.10.0",
+    "@azure/functions": "^4.7.0",
+    "@azure/identity": "^4.10.0",
+    "@azure/keyvault-secrets": "^4.9.0",
+    "@azure/storage-blob": "^12.27.0",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@azure/core-rest-pipeline": "^1.22.0",
+    "@types/node": "^24.0.0",
+    "azurite": "^3.35.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}

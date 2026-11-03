@@ -11,7 +11,7 @@ import {
   readUploadLink,
   uploadLink,
   compareTranscription,
-  explainTranscriptionDifference,
+  transcriptionDifferences,
   type ReviewAssignment,
 } from "../src/photo-review/contracts";
 import { reviewClient, preparePhoto } from "../src/photo-review/client";
@@ -49,7 +49,12 @@ test("Transcription offers 50 stable five-sentence sets, with 250 distinct sente
 test("Public configuration defaults off and rejects unsafe backend addresses", async () => {
   assert.equal(
     readConfig(
-      JSON.parse(await readFile("public/photo-review-config.json", "utf8")),
+      JSON.parse(
+        (await readFile("public/photo-review-config.json", "utf8")).replace(
+          /"enabled"\s*:\s*true/,
+          '"enabled": false',
+        ),
+      ),
     ).enabled,
     false,
   );
@@ -151,7 +156,7 @@ test("Results from other assignments, duplicates, missing lines and uncertain om
   ])
     assert.throws(() => readStatus(bad, assignment, s));
 });
-test("Parent-confirmed scoring preserves case, diacritics and punctuation with useful explanations", () => {
+test("Automatic transcription scoring preserves case, diacritics and lists every word and punctuation difference", () => {
   const rows = compareTranscription(assignment, {
     "sentence-1": " Eva  čte knihu. ",
     "sentence-2": "Kde bydlis?",
@@ -160,16 +165,33 @@ test("Parent-confirmed scoring preserves case, diacritics and punctuation with u
     rows.map((r) => r.correct),
     [true, false],
   );
-  assert.match(explainTranscriptionDifference("Eva čte.", "eva čte."), /velká/);
-  assert.match(explainTranscriptionDifference("Eva čte.", "Eva cte."), /háčky/);
+  assert.match(transcriptionDifferences("Eva čte.", "eva čte.")[0], /velikost písmen/);
+  assert.match(transcriptionDifferences("Eva čte.", "Eva cte.")[0], /diakritika/);
+  assert.match(transcriptionDifferences("Kde bydlíš?", "Kde bydlíš.")[0], /Interpunkce.*\?*.*\./);
+  const all = transcriptionDifferences("Eva čte knihu.", "Adam nesl knihu!");
+  assert.equal(all.length, 3);
+  assert.match(all[0], /Slovo 1.*Eva.*znak/);
+  assert.match(all[1], /Slovo 2.*čte.*znak/);
+  assert.match(all[2], /Interpunkce.*má být.*\..*je.*!/);
+  assert.deepEqual(transcriptionDifferences("Eva čte.", "Eva čte."), []);
   assert.match(
-    explainTranscriptionDifference("Kde bydlíš?", "Kde bydlíš."),
-    /interpunkce/,
+    transcriptionDifferences("Nad horami jsou mraky.", "Nad horami jsou mraky")[0],
+    /Chybí interpunkce „\.“ po 4\. slově/,
   );
   assert.match(
-    explainTranscriptionDifference("Eva čte knihu.", "Eva nese knihu."),
-    /2. slova/,
+    transcriptionDifferences("Kde visí ručník?", "Kde visí ručník.")[0],
+    /Interpunkce po 3\. slově: má být „\?“, je „\.“/,
   );
+  const photoExample = transcriptionDifferences(
+    "Vyměň vodu v misce!",
+    "Umeř vodu v mysce!",
+  );
+  assert.equal(photoExample.length, 2);
+  assert.match(photoExample[0], /Slovo 1.*Vyměň.*znak/);
+  assert.match(photoExample[0], /Rozdíl po znacích/);
+  assert.match(photoExample[0], /chybí|→/);
+  assert.match(photoExample[1], /Slovo 4.*misce.*znak/);
+  assert.match(photoExample[1], /Rozdíl po znacích/);
 });
 test("Client sends anonymous creation, separate owner/upload tokens and stable retry identifiers", async () => {
   const s = await fixture();

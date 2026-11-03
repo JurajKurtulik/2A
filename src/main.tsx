@@ -768,7 +768,7 @@ function App() {
                     <span className="topic-info">
                       <strong>Přepis na papír</strong>
                       <small>
-                        Pět vět, papír a tužka. Připravovaná kontrola fotkou.
+                        Pět vět, papír a tužka. Vyfoť přepis a zobraz automatickou kontrolu.
                       </small>
                       <span className="tag">50 sad · 5 vět</span>
                     </span>
@@ -800,7 +800,7 @@ function App() {
                   history: [
                     {
                       date: new Date().toISOString(),
-                      label: "Přepis pěti vět · kontrola potvrzená rodičem",
+                      label: "Přepis pěti vět · automatická kontrola z fotky",
                       kind: "practice",
                       grade: 2,
                       variant: result.variant,

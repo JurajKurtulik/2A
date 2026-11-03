@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, QrCode, Upload, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Camera, QrCode, Upload, RefreshCw } from "lucide-react";
 import { useReviewConfig } from "./config";
 import { reviewClient, preparePhoto, ReviewApiError } from "./client";
+import { randomId } from "../random-id";
 import {
   uploadLink,
   compareTranscription,
@@ -9,7 +10,7 @@ import {
   type ReviewSession,
   type ReviewStatus,
 } from "./contracts";
-export type ConfirmedReview = {
+export type PhotoReviewResult = {
   assignmentId: string;
   texts: Record<string, string>;
   correct: number;
@@ -17,12 +18,12 @@ export type ConfirmedReview = {
 };
 export function PhotoReview({
   assignment,
-  onConfirmed,
+  onComplete,
   service,
 }: {
   assignment: ReviewAssignment;
   service?: ReturnType<typeof reviewClient>;
-  onConfirmed: (result: ConfirmedReview) => void;
+  onComplete: (result: PhotoReviewResult) => void;
 }) {
   const { config, error: configError } = useReviewConfig();
   const client = useMemo(
@@ -33,17 +34,16 @@ export function PhotoReview({
     [status, setStatus] = useState<ReviewStatus | null>(null);
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [consent, setConsent] = useState(false),
-    [ack, setAck] = useState(false),
     [paused, setPaused] = useState(false);
-  const [texts, setTexts] = useState<Record<string, string>>({}),
-    [qr, setQr] = useState(""),
+  const [qr, setQr] = useState(""),
     [photo, setPhoto] = useState<Blob | null>(null),
-    [preview, setPreview] = useState(""),
-    [saved, setSaved] = useState(false);
+    [preview, setPreview] = useState("");
   const mounted = useRef(true),
     fileVersion = useRef(0),
-    requestId = useRef(crypto.randomUUID());
+    requestId = useRef(randomId()),
+    reportedSession = useRef("");
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -89,7 +89,6 @@ export function PhotoReview({
       !client ||
       !session ||
       paused ||
-      saved ||
       status?.status === "completed" ||
       status?.status === "failed" ||
       status?.status === "expired"
@@ -108,11 +107,19 @@ export function PhotoReview({
         setStatus(next);
         setError("");
         if (next.status === "completed") {
-          setTexts(
-            Object.fromEntries(
-              next.result!.items.map((i) => [i.id, i.recognizedText]),
-            ),
-          );
+          if (reportedSession.current !== session.id) {
+            const texts = Object.fromEntries(
+              next.result!.items.map((item) => [item.id, item.recognizedText]),
+            );
+            const rows = compareTranscription(assignment, texts);
+            reportedSession.current = session.id;
+            onCompleteRef.current({
+              assignmentId: assignment.id,
+              texts,
+              correct: rows.filter((row) => row.correct).length,
+              total: assignment.items.length,
+            });
+          }
           return;
         }
         if (next.status === "failed" || next.status === "expired") return;
@@ -131,9 +138,9 @@ export function PhotoReview({
       active = false;
       clearTimeout(timer);
     };
-  }, [client, session, paused, saved, status?.status, assignment]);
+  }, [client, session, paused, status?.status, assignment]);
   async function create() {
-    if (!client || !consent || busy) return;
+    if (!client || busy) return;
     setBusy(true);
     setError("");
     try {
@@ -142,14 +149,12 @@ export function PhotoReview({
       setSession(next);
       setStatus(null);
       setPaused(false);
-      setAck(false);
-      setTexts({});
       setQr("");
     } catch (e) {
       if (mounted.current) {
         setError(message(e));
         if (e instanceof ReviewApiError && e.status === 410)
-          requestId.current = crypto.randomUUID();
+          requestId.current = randomId();
       }
     } finally {
       if (mounted.current) setBusy(false);
@@ -173,7 +178,7 @@ export function PhotoReview({
     }
   }
   async function upload() {
-    if (!client || !session || !photo || busy || !consent) return;
+    if (!client || !session || !photo || busy) return;
     setBusy(true);
     setError("");
     try {
@@ -213,34 +218,24 @@ export function PhotoReview({
       )}
       {!service && config && !config.enabled && (
         <div className="feedback">
-          <strong>Automatická kontrola se připravuje.</strong>
-          <p>
-            Věty si už můžeš přepsat na papír. Zatím je s tebou zkontroluje
-            rodič. Nahrávání fotek zapneme po připojení služby v Azure.
-          </p>
+          <strong>Kontrola z fotografie teď není zapnutá.</strong>
+          <p>Přepis můžeš dál procvičovat na papír.</p>
         </div>
       )}
       {client && !session && (
-        <>
-          <Consent checked={consent} onChange={setConsent} />
-          <button
-            className="button primary"
-            disabled={!consent || busy}
-            onClick={create}
-          >
-            <QrCode size={18} />
-            {busy
-              ? "Připravuji propojení…"
-              : "Připojit telefon nebo nahrát fotku"}
-          </button>
-        </>
+        <button className="button primary" disabled={busy} onClick={create}>
+          <QrCode size={18} />
+          {busy
+            ? "Připravuji propojení…"
+            : "Připojit telefon nebo nahrát fotku"}
+        </button>
       )}
       {error && (
         <p role="alert" className="feedback bad">
           {error}
         </p>
       )}
-      {session && !completed && !saved && (
+      {session && !completed && (
         <>
           <p role="status">
             {status?.status === "expired"
@@ -339,7 +334,7 @@ export function PhotoReview({
               className="button light"
               disabled={busy}
               onClick={() => {
-                requestId.current = crypto.randomUUID();
+                requestId.current = randomId();
                 setSession(null);
                 setStatus(null);
                 setPhoto(null);
@@ -351,68 +346,9 @@ export function PhotoReview({
           )}
         </>
       )}
-      {completed && !saved && (
-        <div className="photo-recognition">
-          <h3>Rodič zkontroluje rozpoznaný text</h3>
-          <p>
-            Nejprve porovnej tento přepis s tím, co je skutečně na fotce. Oprav
-            pouze chyby rozpoznání, nikoli chyby dítěte.
-          </p>
-          {assignment.items.map((item, i) => {
-            const recognized = status.result!.items.find(
-              (row) => row.id === item.id,
-            )!;
-            return (
-              <label key={item.id}>
-                Věta {i + 1}
-                {recognized.uncertain && (
-                  <strong className="uncertain">
-                    {" "}
-                    · Nejasné místo – ověř podle papíru
-                  </strong>
-                )}
-                <textarea
-                  value={texts[item.id] ?? ""}
-                  maxLength={1000}
-                  onChange={(e) => {
-                    setTexts({ ...texts, [item.id]: e.target.value });
-                    setAck(false);
-                  }}
-                />
-              </label>
-            );
-          })}
-          <label className="review-consent">
-            <input
-              type="checkbox"
-              checked={ack}
-              onChange={(e) => setAck(e.target.checked)}
-            />
-            Porovnal(a) jsem všechny věty s papírem a ručně ověřil(a) nejasná
-            místa.
-          </label>
-          <button
-            className="button primary"
-            disabled={!ack}
-            onClick={() => {
-              const rows = compareTranscription(assignment, texts);
-              setSaved(true);
-              onConfirmed({
-                assignmentId: assignment.id,
-                texts,
-                correct: rows.filter((r) => r.correct).length,
-                total: rows.length,
-              });
-            }}
-          >
-            <CheckCircle2 size={18} />
-            Potvrdit přepis a vyhodnotit
-          </button>
-        </div>
-      )}
-      {saved && (
+      {completed && (
         <p role="status" className="feedback good">
-          Výsledek byl potvrzený rodičem.
+          Kontrola je hotová. Výsledek a jednotlivé rozdíly jsou níže.
         </p>
       )}
     </section>
@@ -422,25 +358,4 @@ export function message(e: unknown) {
   return e instanceof Error
     ? e.message
     : "Kontrolní služba není dostupná. Zkus to později.";
-}
-export function Consent({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className="review-consent">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      Jako rodič souhlasím s odesláním zadání a fotografie do naší služby v
-      Microsoft Azure a modelu Microsoft Foundry za účelem kontroly. Fotografie
-      se po zpracování odstraní; nedokončené relace a výsledky se mažou
-      nejpozději do 60 minut.
-    </label>
-  );
 }

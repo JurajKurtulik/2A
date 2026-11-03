@@ -4,3 +4,7 @@ dist/
 .DS_Store
 /1/
 /preview/
+backend/local.settings.json
+backend/.azurite/
+*.log
+infra/.build/

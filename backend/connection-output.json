@@ -1,0 +1,22 @@
+{
+  "apiBaseUrl": "https://p-func-skolahrou-jk.azurewebsites.net/api",
+  "resourceGroup": "p-rg-skolahrou-jk",
+  "location": "uksouth",
+  "modelDeployment": "p-model-skolahrou-jk",
+  "model": "gpt-6.1-sol",
+  "modelVersion": "2026-09-29",
+  "deploymentType": "GlobalStandard",
+  "healthCheck": "passed",
+  "contractVersion": 1,
+  "limits": {
+    "dailyModelAttempts": 20,
+    "monthlyModelAttempts": 100
+  },
+  "retention": {
+    "sessionMinutes": 30,
+    "maxCleanupMinutes": 60,
+    "cleanupIndependentlyVerified": false
+  },
+  "ocrAccuracyVerified": false,
+  "publicFeatureEnabled": true
+}

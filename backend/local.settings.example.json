@@ -1,0 +1,19 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "PHOTO_REVIEW_ENABLED": "false",
+    "PHOTO_ALLOWED_ORIGIN": "https://jurajkurtulik.github.io",
+    "PHOTO_STORAGE_ACCOUNT_URL": "https://REPLACE_ACCOUNT.blob.core.windows.net/",
+    "PHOTO_STORAGE_CONTAINER": "replace-private-app-container",
+    "PHOTO_KEY_VAULT_URL": "https://REPLACE_VAULT.vault.azure.net/",
+    "PHOTO_SIGNING_SECRET_NAME": "replace-signing-secret-name",
+    "AZURE_OPENAI_ENDPOINT": "https://REPLACE_RESOURCE.openai.azure.com/",
+    "AZURE_OPENAI_DEPLOYMENT": "replace-verified-deployment-name",
+    "PHOTO_REVIEW_DAILY_LIMIT": "20",
+    "PHOTO_REVIEW_MONTHLY_LIMIT": "100",
+    "PHOTO_MODEL_TIMEOUT_MS": "120000",
+    "PHOTO_MODEL_MAX_OUTPUT_TOKENS": "4096"
+  }
+}

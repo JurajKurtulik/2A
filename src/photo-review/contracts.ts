@@ -1,3 +1,5 @@
+import { sha256 } from "@noble/hashes/sha2.js";
+
 export type ReviewAssignment = {
   schemaVersion: 1;
   id: string;
@@ -79,11 +81,8 @@ export function canonicalAssignment(a: ReviewAssignment) {
   });
 }
 export async function assignmentDigest(a: ReviewAssignment) {
-  const bytes = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(canonicalAssignment(a)),
-  );
-  return [...new Uint8Array(bytes)]
+  const bytes = sha256(new TextEncoder().encode(canonicalAssignment(a)));
+  return [...bytes]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
@@ -188,24 +187,179 @@ export function compareTranscription(
   }));
 }
 
-export function explainTranscriptionDifference(
-  expected: string,
-  actual: string,
-) {
-  const a = normalizedText(expected),
-    b = normalizedText(actual);
-  if (a === b) return "Věta odpovídá vzoru.";
-  if (!b) return "Věta na papíře chybí.";
-  if (a.toLocaleLowerCase("cs") === b.toLocaleLowerCase("cs"))
-    return "Liší se velká a malá písmena. Zkontroluj začátek věty a vlastní jména.";
-  const withoutMarks = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "");
-  if (withoutMarks(a) === withoutMarks(b))
-    return "Liší se háčky nebo čárky nad písmeny.";
-  if (a.replace(/[.,!?;:]/g, "") === b.replace(/[.,!?;:]/g, ""))
-    return "Liší se interpunkce. Zkontroluj čárky a znaménko na konci věty.";
-  const aw = a.split(" "),
-    bw = b.split(" ");
+type DifferenceToken = {
+  value: string;
+  kind: "word" | "punctuation";
+  wordIndex: number;
+};
+
+function differenceTokens(value: string): DifferenceToken[] {
+  const tokens: DifferenceToken[] = [];
+  let wordIndex = 0;
+  for (const match of normalizedText(value).matchAll(
+    /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*|[^\s]/gu,
+  )) {
+    const word = /^[\p{L}\p{N}]/u.test(match[0]);
+    tokens.push({
+      value: match[0],
+      kind: word ? "word" : "punctuation",
+      wordIndex: word ? ++wordIndex : wordIndex,
+    });
+  }
+  return tokens;
+}
+
+function characterChanges(expected: string, actual: string): string[] {
+  const left = Array.from(expected);
+  const right = Array.from(actual);
+  const width = right.length + 1;
+  const cost = new Uint16Array((left.length + 1) * width);
+  for (let i = 0; i <= left.length; i++) cost[i * width + right.length] = left.length - i;
+  for (let j = 0; j <= right.length; j++) cost[left.length * width + j] = right.length - j;
+  for (let i = left.length - 1; i >= 0; i--) {
+    for (let j = right.length - 1; j >= 0; j--) {
+      cost[i * width + j] = Math.min(
+        (left[i] === right[j] ? 0 : 1) + cost[(i + 1) * width + j + 1],
+        1 + cost[(i + 1) * width + j],
+        1 + cost[i * width + j + 1],
+      );
+    }
+  }
+  const changes: string[] = [];
   let i = 0;
-  while (i < Math.min(aw.length, bw.length) && aw[i] === bw[i]) i++;
-  return `První rozdíl je u ${i + 1}. slova: ve vzoru je „${aw[i] ?? "(konec věty)"}“, v přepisu „${bw[i] ?? "(slovo chybí)"}“.${aw.length !== bw.length ? " Liší se i počet slov." : ""}`;
+  let j = 0;
+  while (i < left.length || j < right.length) {
+    if (i < left.length && j < right.length && left[i] === right[j]) {
+      i++;
+      j++;
+    } else if (
+      i < left.length &&
+      j < right.length &&
+      cost[i * width + j] === 1 + cost[(i + 1) * width + j + 1]
+    ) {
+      changes.push(`znak ${i + 1}: „${left[i]}“ → „${right[j]}“`);
+      i++;
+      j++;
+    } else if (
+      i < left.length &&
+      cost[i * width + j] === 1 + cost[(i + 1) * width + j]
+    ) {
+      changes.push(`znak ${i + 1}: „${left[i]}“ chybí`);
+      i++;
+    } else {
+      changes.push(`za znakem ${i}: přebývá „${right[j]}“`);
+      j++;
+    }
+  }
+  return changes;
+}
+
+/** Lists every word and punctuation-token difference; whitespace is ignored. */
+export function transcriptionDifferences(expected: string, actual: string) {
+  const expectedTokens = differenceTokens(expected);
+  const actualTokens = differenceTokens(actual);
+  const width = actualTokens.length + 1;
+  const lcs = new Uint16Array((expectedTokens.length + 1) * width);
+
+  for (let i = expectedTokens.length - 1; i >= 0; i--) {
+    for (let j = actualTokens.length - 1; j >= 0; j--) {
+      lcs[i * width + j] =
+        expectedTokens[i].value === actualTokens[j].value
+          ? 1 + lcs[(i + 1) * width + j + 1]
+          : Math.max(lcs[(i + 1) * width + j], lcs[i * width + j + 1]);
+    }
+  }
+
+  const groups: { expected: DifferenceToken[]; actual: DifferenceToken[] }[] = [];
+  let group: (typeof groups)[number] = { expected: [], actual: [] };
+  const flush = () => {
+    if (group.expected.length || group.actual.length) groups.push(group);
+    group = { expected: [], actual: [] };
+  };
+  let i = 0;
+  let j = 0;
+  while (i < expectedTokens.length || j < actualTokens.length) {
+    if (
+      i < expectedTokens.length &&
+      j < actualTokens.length &&
+      expectedTokens[i].value === actualTokens[j].value
+    ) {
+      flush();
+      i++;
+      j++;
+    } else if (
+      i < expectedTokens.length &&
+      (j === actualTokens.length ||
+        lcs[(i + 1) * width + j] >= lcs[i * width + j + 1])
+    ) {
+      group.expected.push(expectedTokens[i++]);
+    } else {
+      group.actual.push(actualTokens[j++]);
+    }
+  }
+  flush();
+
+  const differences: string[] = [];
+  for (const changed of groups) {
+    const expectedWords = changed.expected.filter((token) => token.kind === "word");
+    const actualWords = changed.actual.filter((token) => token.kind === "word");
+    const pairedWords = Math.min(expectedWords.length, actualWords.length);
+    for (let word = 0; word < pairedWords; word++) {
+      const expectedWord = expectedWords[word].value;
+      const actualWord = actualWords[word].value;
+      const withoutMarks = (value: string) =>
+        value.normalize("NFD").replace(/\p{M}/gu, "");
+      const detail =
+        expectedWord.toLocaleLowerCase("cs") === actualWord.toLocaleLowerCase("cs")
+          ? "Liší se velikost písmen."
+          : withoutMarks(expectedWord.toLocaleLowerCase("cs")) ===
+              withoutMarks(actualWord.toLocaleLowerCase("cs"))
+            ? "Liší se diakritika."
+            : "Slovo je rozpoznané jinak.";
+      const characters = characterChanges(expectedWord, actualWord);
+      differences.push(
+        `Slovo ${expectedWords[word].wordIndex}: má být „${expectedWord}“, ${detail}${characters.length ? ` Rozdíl po znacích: ${characters.join("; ")}.` : ""}`,
+      );
+    }
+    for (const token of expectedWords.slice(pairedWords)) {
+      differences.push(
+        `Slovo ${token.wordIndex}: chybí „${token.value}“.`,
+      );
+    }
+    for (const token of actualWords.slice(pairedWords)) {
+      differences.push(
+        `Navíc slovo „${token.value}“ (u ${token.wordIndex}. slova).`,
+      );
+    }
+
+    const expectedPunctuation = changed.expected.filter(
+      (token) => token.kind === "punctuation",
+    );
+    const actualPunctuation = changed.actual.filter(
+      (token) => token.kind === "punctuation",
+    );
+    const pairedPunctuation = Math.min(
+      expectedPunctuation.length,
+      actualPunctuation.length,
+    );
+    for (let mark = 0; mark < pairedPunctuation; mark++) {
+      const expectedMark = expectedPunctuation[mark];
+      const actualMark = actualPunctuation[mark];
+      const position = Math.max(expectedMark.wordIndex, actualMark.wordIndex);
+      differences.push(
+        `Interpunkce ${position ? `po ${position}. slově` : "na začátku věty"}: má být „${expectedMark.value}“, je „${actualMark.value}“.`,
+      );
+    }
+    for (const token of expectedPunctuation.slice(pairedPunctuation)) {
+      differences.push(
+        `Chybí interpunkce „${token.value}“ po ${token.wordIndex}. slově.`,
+      );
+    }
+    for (const token of actualPunctuation.slice(pairedPunctuation)) {
+      differences.push(
+        `Navíc interpunkce „${token.value}“ po ${token.wordIndex}. slově.`,
+      );
+    }
+  }
+  return differences;
 }

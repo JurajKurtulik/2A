@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Upload } from "lucide-react";
 import { useReviewConfig } from "./config";
 import { reviewClient, preparePhoto } from "./client";
-import { Consent, message } from "./PhotoReview";
+import { message } from "./PhotoReview";
 export function MobilePhotoUpload({
   id,
   token,
@@ -17,7 +17,6 @@ export function MobilePhotoUpload({
   );
   const [photo, setPhoto] = useState<Blob | null>(null),
     [preview, setPreview] = useState(""),
-    [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
     [sent, setSent] = useState(false),
     [error, setError] = useState("");
@@ -56,7 +55,7 @@ export function MobilePhotoUpload({
     }
   }
   async function send() {
-    if (!client || !photo || !consent || busy || sent) return;
+    if (!client || !photo || busy || sent) return;
     setBusy(true);
     setError("");
     try {
@@ -137,10 +136,9 @@ export function MobilePhotoUpload({
               alt="Fotka připravená k odeslání"
             />
           )}
-          <Consent checked={consent} onChange={setConsent} />
           <button
             className="button primary"
-            disabled={!photo || !consent || busy}
+            disabled={!photo || busy}
             onClick={send}
           >
             {busy
@@ -158,8 +156,7 @@ export function MobilePhotoUpload({
         <div role="status" className="feedback good">
           <strong>Fotka byla zpracovaná.</strong>
           <p>
-            Vrať se na počítač. Rodič tam potvrdí rozpoznaný text a zobrazí se
-            výsledek.
+            Vrať se na počítač. Automatický přepis a vyhodnocení se tam zobrazí.
           </p>
         </div>
       )}
