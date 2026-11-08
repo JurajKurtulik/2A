@@ -86,6 +86,15 @@ export type PaperSection = {
 const instructions: Record<string, string> = {
   arithmetic: "Vypočítej příklady.",
   tens: "Sčítej a odčítej celé desítky do 100.",
+  "arithmetic-chain":
+    "Počítej zleva doprava. Na řádek pod příkladem si můžeš napsat mezivýsledky.",
+  "hundred-no-crossing":
+    "Přičti nebo odečti jednotky bez přechodu přes desítku.",
+  "hundred-crossing": "Přičti nebo odečti jednotky s přechodem přes desítku.",
+  "hundred-two-digit":
+    "Sečti nebo odečti dvě dvojciferná čísla. Na řádek si můžeš napsat mezivýpočet.",
+  "length-conversion":
+    "Převeď délku na uvedenou jednotku. Do mezery doplň jen číslo.",
   decompose: "Rozlož čísla na desítky a jednotky. Vzor: 47 = 40 + 7.",
   missing: "Doplň chybějící číslo do rámečku.",
   sequence: "Doplň chybějící číslo v každé řadě.",
@@ -114,8 +123,18 @@ export function paperSections(w: Worksheet): PaperSection[] {
         : 1),
     items: s.questions.map((q) => {
       const base = { answer: q.answers.join(" / "), writingLines: 0 };
-      if (["arithmetic", "tens"].includes(q.topic))
-        return { ...base, lines: [q.prompt.replace("?", "________")] };
+      if (q.kind === "input" && q.prompt.includes("?"))
+        return {
+          ...base,
+          lines: [q.prompt.replace("?", "________")],
+          writingLines: Number(
+            q.topic === "arithmetic-chain" || q.topic === "hundred-two-digit",
+          ),
+          answer:
+            q.topic === "length-conversion"
+              ? q.prompt.replace("?", base.answer)
+              : base.answer,
+        };
       if (q.topic === "decompose") {
         const n = q.prompt.match(/\d+/)![0];
         return { ...base, lines: [`${n} = ______ + ______`] };

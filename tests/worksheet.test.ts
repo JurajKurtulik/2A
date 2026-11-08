@@ -122,28 +122,31 @@ test("PDF and Word export use the same version and keep solutions separate", asy
 test("Every topic paginates at maximum supported count without clipping or missing rows", async () => {
   for (const subject of ["math", "czech"] as Subject[]) {
     const ids = topics.filter((t) => t.subject === subject);
-    const chosen = subject === "math" ? ids : ids.slice(0, 6);
-    const w = createWorksheet(
-      subject,
-      chosen.map((t) => ({ topic: t.id, count: 20 })),
-    );
-    for (const solutions of [false, true]) {
-      const { pages } = await prepareLayout(w, solutions, await fonts);
-      assert.ok(pages.length > 1);
-      for (const page of pages) {
-        assert.ok(
-          page.rows.reduce((n, r) => n + r.height, 0) <=
-            PAPER.bodyBottom - page.bodyTop,
-        );
-        assert.ok(page.rows.length > 0);
+    // The builder allows 120 questions total, or six topics at 20 questions each.
+    for (let offset = 0; offset < ids.length; offset += 6) {
+      const chosen = ids.slice(offset, offset + 6);
+      const w = createWorksheet(
+        subject,
+        chosen.map((t) => ({ topic: t.id, count: 20 })),
+      );
+      for (const solutions of [false, true]) {
+        const { pages } = await prepareLayout(w, solutions, await fonts);
+        assert.ok(pages.length > 1);
+        for (const page of pages) {
+          assert.ok(
+            page.rows.reduce((n, r) => n + r.height, 0) <=
+              PAPER.bodyBottom - page.bodyTop,
+          );
+          assert.ok(page.rows.length > 0);
+        }
+        for (const [index, section] of w.sections.entries())
+          assert.ok(
+            pages
+              .flatMap((p) => p.rows)
+              .some((r) => r.cells[0]?.startsWith(`${index + 1}. `)),
+            section.topic,
+          );
       }
-      for (const [index, section] of w.sections.entries())
-        assert.ok(
-          pages
-            .flatMap((p) => p.rows)
-            .some((r) => r.cells[0]?.startsWith(`${index + 1}. `)),
-          section.topic,
-        );
     }
   }
   for (const id of ["dityni", "detene", "capitals"]) {
@@ -151,6 +154,48 @@ test("Every topic paginates at maximum supported count without clipping or missi
     const { pages } = await prepareLayout(w, false, await fonts);
     assert.ok(pages.length);
   }
+});
+
+test("New math topics keep the same questions for online and paper, with space to write", async () => {
+  const newTopics = [
+    "arithmetic-chain",
+    "hundred-no-crossing",
+    "hundred-crossing",
+    "hundred-two-digit",
+    "length-conversion",
+  ];
+  const w = createWorksheet(
+    "math",
+    newTopics.map((topic) => ({ topic, count: 4 })),
+  );
+  const paper = paperSections(w);
+  assert.deepEqual(
+    paper.map((section) => section.columns),
+    [1, 2, 2, 2, 2],
+  );
+  for (const [index, section] of w.sections.entries()) {
+    for (const [i, question] of section.questions.entries()) {
+      const item = paper[index].items[i];
+      assert.deepEqual(item.lines, [question.prompt.replace("?", "________")]);
+      assert.equal(item.writingLines, index === 0 || index === 3 ? 1 : 0);
+      assert.equal(
+        item.answer,
+        index === 4
+          ? question.prompt.replace("?", question.answers[0])
+          : question.answers[0],
+      );
+    }
+  }
+  const { pages } = await prepareLayout(w, false, await fonts);
+  const rules = pages.flatMap((page) => page.rows).filter((row) => row.rule);
+  assert.equal(
+    rules.filter((row) => row.cells.length === 1 && row.height === 27).length,
+    4,
+  );
+  assert.equal(
+    rules.filter((row) => row.cells.length === 2 && row.height === 27).length,
+    2,
+  );
 });
 
 test("Czech handwriting has larger text and double writing space; headers only on first page", async () => {

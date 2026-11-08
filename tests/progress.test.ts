@@ -8,7 +8,8 @@ import {
   worksheetQuestions,
 } from "../src/worksheet";
 test("Grades have isolated catalogs and cannot generate another grade's topics", () => {
-  assert.equal(topicsForGrade(2).length, 15);
+  assert.equal(topicsForGrade(2, "math").length, 11);
+  assert.equal(topicsForGrade(2, "czech").length, 9);
   for (const grade of [1, 3, 4, 5, 6, 7, 8, 9] as const) {
     assert.equal(topicsForGrade(grade).length, 0);
     assert.ok(

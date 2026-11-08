@@ -4,7 +4,7 @@ Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky 
 
 ## Co aplikace umí
 
-- 6 matematických a 9 jazykových okruhů vycházejících z dodaných přípravných písemek.
+- 11 matematických a 9 jazykových okruhů pro 2. třídu.
 - Krátká cvičení po osmi úlohách a krátké i delší cvičné písemky.
 - Vlastní sestavení písemky: výběr témat, 1 až 20 příkladů z každého tématu a nejvýše 120 příkladů celkem. Krátká a delší varianta slouží jako upravitelné předvolby.
 - Jedna označená varianta pro online vyplňování, PDF, upravitelný Word i přímý tisk. Náhled a oddělené řešení pro rodiče používají stejnou sestavu. Nová zadání vznikají až po stisknutí „Nová varianta“.
@@ -86,7 +86,9 @@ Podrobný postup a dohoda pro budoucí rozvoj: [docs/CONTENT_GUIDE.md](docs/CONT
 4. Nové téma přidejte do pole `topics` s povinným `grade` a stabilním ID. Menu, výběr do písemek i tematické výsledky ho převezmou automaticky. Doplňte odpovídající papírový pokyn a případný převod zadání v `src/worksheet.ts`, aby se dobře vyplňovalo tužkou.
 5. Ověřte věcnou správnost zadání, jedinečnost nabídek, českou abecedu a přijatelná alternativní řešení. Spusťte testy a sestavení a zkontrolujte ovládání v prohlížeči.
 
-U doplňování zůstává diakritika součástí správnosti. Řazení používá české porovnávání včetně písmene ch. Při sestavování vět je u každého zadání uvedena základní a další ověřená varianta slovosledu; nejde o obecný jazykový analyzátor. Matematika respektuje nezáporné výsledky, rozsah do 20 a celé desítky do 100. Série neopakuje stejné zadání a při výběru omezuje nedávno procvičované položky, dokud zásoba dovoluje.
+U doplňování zůstává diakritika součástí správnosti. Řazení používá české porovnávání včetně písmene ch. Při sestavování vět je u každého zadání uvedena základní a další ověřená varianta slovosledu; nejde o obecný jazykový analyzátor. Série neopakuje stejné zadání a při výběru omezuje nedávno procvičované položky, dokud zásoba dovoluje.
+
+Početní řetězce mají pět čísel od 1 do 10 a nezáporné mezivýsledky. Příklady do 100 se dělí na počítání s jednotkami bez přechodu, s přechodem a počítání se dvěma dvojcifernými čísly. Převody délky kombinují mm, cm a dm ve všech šesti směrech a používají celé hodnoty. Zadání vznikají z početních pravidel. Papírové řetězce a příklady se dvěma dvojcifernými čísly mají místo pro mezivýpočty.
 
 Původní Wordové podklady ve složce `1` zůstávají místními vstupy a nejsou součástí publikovaného webu. Aplikace vynechává diktáty, přepis psacím písmem a volné tvoření vět.
 

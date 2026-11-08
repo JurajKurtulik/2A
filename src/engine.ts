@@ -43,7 +43,128 @@ const q = (
   explanation,
   ...extra,
 });
+
+function arithmeticChain(): Question {
+  let total = random(1, 10);
+  let prompt = String(total);
+  const steps: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const subtract = total > 0 && Math.random() < 0.5;
+    const operand = random(1, subtract ? Math.min(10, total) : 10);
+    const operation = `${subtract ? "−" : "+"} ${operand}`;
+    const next = total + (subtract ? -operand : operand);
+    prompt += ` ${operation}`;
+    steps.push(`${total} ${operation} = ${next}`);
+    total = next;
+  }
+  return q(
+    "arithmetic-chain",
+    `${prompt} = ?`,
+    String(total),
+    `Počítáme zleva doprava. ${steps.join(". ")}.`,
+  );
+}
+
+function hundredQuestions(): Map<string, Question[][]> {
+  const noCrossing: Question[][] = [[], []];
+  const crossing: Question[][] = [[], []];
+  const twoDigit: Question[][] = [[], [], [], []];
+  for (const subtract of [false, true]) {
+    const sign = subtract ? "−" : "+";
+    const direction = subtract ? -1 : 1;
+    for (let left = 10; left <= 99; left++) {
+      for (let right = 1; right <= 99; right++) {
+        const result = left + direction * right;
+        if (result < 0 || result > 100) continue;
+        const units = (left % 10) + direction * (right % 10);
+        const crosses = units < 0 || units >= 10;
+        const equation = `${left} ${sign} ${right}`;
+        if (right >= 10) {
+          const tens = right - (right % 10);
+          const afterTens = left + direction * tens;
+          const explanation =
+            right % 10
+              ? `Nejdřív desítky: ${left} ${sign} ${tens} = ${afterTens}. Potom jednotky: ${afterTens} ${sign} ${right % 10} = ${result}.`
+              : `${right} jsou celé desítky. ${equation} = ${result}.`;
+          twoDigit[Number(subtract) * 2 + Number(crosses)].push(
+            q(
+              "hundred-two-digit",
+              `${equation} = ?`,
+              String(result),
+              explanation,
+            ),
+          );
+        } else if (crosses) {
+          const toBoundary = subtract ? left % 10 : 10 - (left % 10);
+          const boundary = left + direction * toBoundary;
+          const explanation =
+            toBoundary > 0 && toBoundary < right
+              ? `Nejdřív k celé desítce: ${left} ${sign} ${toBoundary} = ${boundary}. Potom ${boundary} ${sign} ${right - toBoundary} = ${result}.`
+              : `${equation} = ${result}. ${subtract ? "Odčítáme od celé desítky." : "Součet je celá desítka."}`;
+          crossing[Number(subtract)].push(
+            q(
+              "hundred-crossing",
+              `${equation} = ?`,
+              String(result),
+              explanation,
+            ),
+          );
+        } else {
+          noCrossing[Number(subtract)].push(
+            q(
+              "hundred-no-crossing",
+              `${equation} = ?`,
+              String(result),
+              `Počítáme jen s jednotkami: ${left % 10} ${sign} ${right} = ${units}. Desítky se nemění. Výsledek je ${result}.`,
+            ),
+          );
+        }
+      }
+    }
+  }
+  return new Map([
+    ["hundred-no-crossing", noCrossing],
+    ["hundred-crossing", crossing],
+    ["hundred-two-digit", twoDigit],
+  ]);
+}
+
+function lengthQuestions(): Question[][] {
+  const units = ["mm", "cm", "dm"];
+  return units.flatMap((from, fromIndex) =>
+    units.flatMap((to, toIndex) => {
+      if (from === to) return [];
+      const toSmaller = fromIndex > toIndex;
+      const factor = 10 ** Math.abs(fromIndex - toIndex);
+      const rule = `1 ${toSmaller ? from : to} = ${factor} ${toSmaller ? to : from}`;
+      return [
+        Array.from({ length: 9 }, (_, index) => {
+          const largerUnitValue = index + 1;
+          const given = toSmaller ? largerUnitValue : largerUnitValue * factor;
+          const answer = toSmaller ? largerUnitValue * factor : largerUnitValue;
+          return q(
+            "length-conversion",
+            `${given} ${from} = ? ${to}`,
+            String(answer),
+            `${rule}. Proto ${given} ${toSmaller ? "×" : ":"} ${factor} = ${answer} ${to}.`,
+          );
+        }),
+      ];
+    }),
+  );
+}
+
+const generatedMath = hundredQuestions();
+generatedMath.set("length-conversion", lengthQuestions());
+
 export function generate(topic: string, variant?: number): Question {
+  if (topic === "arithmetic-chain") return arithmeticChain();
+  const groups = generatedMath.get(topic);
+  if (groups) {
+    if (variant === undefined) return pick(pick(groups));
+    const candidates = groups.flat();
+    return candidates[variant % candidates.length];
+  }
   const choose = <T>(bank: readonly T[]): T =>
     variant === undefined ? pick(bank) : bank[variant % bank.length];
   const a = random(0, 20),
@@ -319,25 +440,51 @@ export function makeSession(
 ): Question[] {
   const output: Question[] = [],
     used = new Set<string>();
+  const mathCandidates = new Map<string, Question[]>();
+  const recentPositions = new Map<string, number>();
+  recent.forEach((key, index) => {
+    if (!recentPositions.has(key)) recentPositions.set(key, index);
+  });
   for (let i = 0; i < count; i++) {
     const topic = topicIds[i % topicIds.length];
-    if (bankSizes[topic]) {
-      const candidates = shuffle(
-        Array.from({ length: bankSizes[topic] }, (_, index) =>
-          generate(topic, index),
-        ),
+    const groups = generatedMath.get(topic);
+    if (groups && !mathCandidates.has(topic)) {
+      const shuffled = shuffle(groups).map(shuffle);
+      // One candidate from each group per round gives a mix of operations or conversion directions.
+      mathCandidates.set(
+        topic,
+        Array.from(
+          { length: Math.max(...shuffled.map((group) => group.length)) },
+          (_, index) =>
+            shuffled.flatMap((group) => (group[index] ? [group[index]] : [])),
+        ).flat(),
       );
-      const available = candidates.filter((item) => !used.has(signature(item)));
-      if (!available.length)
-        throw new Error("Počet úloh přesahuje zásobu různých zadání v tématu.");
-      const fresh = available.find((item) => !recent.includes(signature(item)));
-      const item =
-        fresh ??
-        available.reduce((oldest, item) =>
-          recent.indexOf(signature(item)) > recent.indexOf(signature(oldest))
-            ? item
-            : oldest,
+    }
+    if (groups || bankSizes[topic]) {
+      const candidates =
+        mathCandidates.get(topic) ??
+        shuffle(
+          Array.from({ length: bankSizes[topic] }, (_, index) =>
+            generate(topic, index),
+          ),
         );
+      let item = candidates.find((candidate) => {
+        const key = signature(candidate);
+        return !used.has(key) && !recentPositions.has(key);
+      });
+      if (!item) {
+        let oldest = -1;
+        for (const candidate of candidates) {
+          const key = signature(candidate);
+          const position = recentPositions.get(key) ?? -1;
+          if (!used.has(key) && position > oldest) {
+            oldest = position;
+            item = candidate;
+          }
+        }
+      }
+      if (!item)
+        throw new Error("Počet úloh přesahuje zásobu různých zadání v tématu.");
       used.add(signature(item));
       output.push({ ...item, id: `${Date.now()}-${i}` });
       continue;
