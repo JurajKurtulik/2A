@@ -94,8 +94,9 @@ test("Assignment digest binds the exact text and schema order", async () => {
 });
 test("Upload QR contains only upload capability and parsed fragments reject malformed tokens", async () => {
   const s = await fixture();
-  const link = uploadLink("https://example.test/2A/?old=true#old", s);
+  const link = uploadLink("https://example.test/skola-hrou/?old=true#old", s);
   assert.ok(!link.includes(s.ownerToken));
+  assert.equal(new URL(link).pathname, "/skola-hrou/");
   assert.equal(new URL(link).search, "");
   assert.deepEqual(readUploadLink(new URL(link).hash), {
     id: s.id,
