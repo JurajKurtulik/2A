@@ -1,6 +1,6 @@
 # Škola hrou
 
-Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky a češtiny je ve 2. třídě. Veřejný web: https://JurajKurtulik.github.io/2A/
+Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky a češtiny je ve 2. třídě. Veřejný web: https://jurajkurtulik.github.io/skola-hrou/
 
 ## Co aplikace umí
 
@@ -36,7 +36,7 @@ npm test
 npm run build
 ```
 
-Místní adresa je `http://localhost:5173/2A/`. Produkční výstup je ve složce `dist`. Použitý základ: React 19, TypeScript, Vite a Lucide. Fonty Nunito a DM Sans se načítají z Google Fonts; bez připojení se použijí systémová písma.
+Místní adresa je `http://localhost:5173/`. Produkční výstup je ve složce `dist`. Použitý základ: React 19, TypeScript, Vite a Lucide. Fonty Nunito a DM Sans se načítají z Google Fonts; bez připojení se použijí systémová písma.
 
 ## Ročníky a historie
 
@@ -94,7 +94,7 @@ Původní Wordové podklady ve složce `1` zůstávají místními vstupy a nejs
 
 ## Publikování
 
-Workflow `.github/workflows/pages.yml` při změně větve `main` nainstaluje závislosti, spustí testy a sestavení a publikuje pouze `dist` na GitHub Pages. V nastavení repozitáře **Settings → Pages → Source** je potřeba zvolit **GitHub Actions**. Vite používá základní cestu `/2A/`.
+Workflow `.github/workflows/pages.yml` při změně větve `main` nainstaluje závislosti, spustí testy a sestavení a publikuje pouze `dist` na GitHub Pages. V nastavení repozitáře **Settings → Pages → Source** je potřeba zvolit **GitHub Actions**. Vite používá relativní cesty, takže sestavení funguje i v podsložce `/skola-hrou/`.
 
 Exporty běží v prohlížeči přes knihovny `pdf-lib`, `@pdf-lib/fontkit` a `docx`. Náročnější exportní kód se načítá až při otevření papírového náhledu; Wordová knihovna až při stažení DOCX. Výběr a generování jsou v `src/worksheet.ts`, průvodce v `src/WorksheetBuilder.tsx` a samotné exportéry v `src/export.ts`.
 

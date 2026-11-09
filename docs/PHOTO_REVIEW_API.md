@@ -96,4 +96,4 @@ Po dokončení OCR frontend automaticky porovná doslovný rozpoznaný text se v
 
 400 chybný vstup, 401/403 oprávnění, 409 již processing nebo konfliktní opakování, 410 expirace, 413 velikost, 415 typ, 429 limit, 503 závislost. Klient nesmí dostat stack trace ani tělo odpovědi Foundry. Omezit i velikost odpovědi.
 
-CORS pro produkci jen `https://jurajkurtulik.github.io` (origin neobsahuje `/2A/`), metody POST/PUT/GET/OPTIONS a hlavičky Content-Type, Authorization, X-Upload-Token, Idempotency-Key; credentials vypnuté. Localhost jen v lokálním vývoji, ne globální wildcard produkce. CORS není ochrana proti přímému volání API robotem.
+CORS pro produkci jen `https://jurajkurtulik.github.io` (origin bez cesty aplikace), metody POST/PUT/GET/OPTIONS a hlavičky Content-Type, Authorization, X-Upload-Token, Idempotency-Key; credentials vypnuté. Localhost jen v lokálním vývoji, ne globální wildcard produkce. CORS není ochrana proti přímému volání API robotem.

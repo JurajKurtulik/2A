@@ -6,7 +6,7 @@ Zkopíruj následující zadání do GitHub Copilot chatu otevřeného nad tímt
 
 ---
 
-Implementuj a připrav k nasazení levný backend pro kontrolu fotografií českého dětského rukopisu pro existující aplikaci Škola hrou. Máš přístup k mé Azure subscription přes Azure MCP. Frontend již existuje v tomto repozitáři a zůstává na `https://jurajkurtulik.github.io/2A/`.
+Implementuj a připrav k nasazení levný backend pro kontrolu fotografií českého dětského rukopisu pro existující aplikaci Škola hrou. Máš přístup k mé Azure subscription přes Azure MCP. Frontend je na `https://jurajkurtulik.github.io/skola-hrou/`.
 
 Nejdřív přečti `AGENTS.md`, `docs/PHOTO_REVIEW_API.md`, `docs/PHOTO_REVIEW_COMPONENT.md`, `src/photo-review/contracts.ts`, `src/photo-review/client.ts`, `src/photo-review/PhotoReview.tsx`, `src/photo-review/MobilePhotoUpload.tsx` a `tests/photo-review.test.ts`. Implementuj přesně API v1. Nezaměňuj upload token a owner token. Frontend nepřepisuj do jiné platformy.
 
