@@ -1,7 +1,7 @@
 import { HandwritingPractice } from "./HandwritingPractice";
 import { MobilePhotoUpload } from "./photo-review/MobilePhotoUpload";
 import { readUploadLink } from "./photo-review/contracts";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowRight,
@@ -105,6 +105,10 @@ function App() {
   const hasUnfinished = Boolean(session && !session.done) || handwritingDirty;
   const profile = data.profiles[data.active];
   const isOliver = data.active === OLIVER_PROFILE_INDEX;
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle("theme-oliver", isOliver);
+    return () => document.documentElement.classList.remove("theme-oliver");
+  }, [isOliver]);
   const grade = getGrade(profile.grade);
   const currentTopics = topicsForGrade(grade);
   const currentHistory = profile.history.filter((h) => h.grade === grade);
@@ -1380,46 +1384,34 @@ function App() {
             <h2 id="settings-title">Kdo dnes objevuje?</h2>
             <p>Každý má svůj pokrok v tomto prohlížeči.</p>
             {data.profiles.map((p, i) => (
-              <div
+              <button
+                type="button"
                 className={"profile-row " + (i === data.active ? "chosen" : "")}
                 key={i}
-              >
-                <button
-                  className="avatar-select"
-                  aria-label={`Vybrat profil ${p.name}`}
-                  onClick={() => {
-                    if (
-                      hasUnfinished &&
-                      !confirm(
-                        "Změnou profilu opustíš rozpracované cvičení. Pokračovat?",
-                      )
-                    )
-                      return;
-                    setSession(null);
-                    setHandwritingDirty(false);
-                    persist({ ...data, active: i });
+                aria-label={`Vybrat profil ${p.name}`}
+                aria-pressed={i === data.active}
+                onClick={() => {
+                  if (i === data.active) {
                     setSettings(false);
-                  }}
-                >
-                  {p.avatar}
-                </button>
-                <label>
-                  Přezdívka
-                  <input
-                    maxLength={24}
-                    value={p.name}
-                    onChange={(e) =>
-                      persist({
-                        ...data,
-                        profiles: data.profiles.map((v, j) =>
-                          i === j ? { ...v, name: e.target.value } : v,
-                        ),
-                      })
-                    }
-                  />
-                </label>
-                {i === data.active && <Check size={20} />}
-              </div>
+                    return;
+                  }
+                  if (
+                    hasUnfinished &&
+                    !confirm(
+                      "Změnou profilu opustíš rozpracované cvičení. Pokračovat?",
+                    )
+                  )
+                    return;
+                  setSession(null);
+                  setHandwritingDirty(false);
+                  persist({ ...data, active: i });
+                  setSettings(false);
+                }}
+              >
+                <span className="profile-row-avatar" aria-hidden="true">{p.avatar}</span>
+                <span className="profile-row-name">{p.name}</span>
+                {i === data.active && <Check size={20} aria-hidden="true" />}
+              </button>
             ))}
             <p className="hint">
               Profily nepotřebují účet. Výsledky zůstávají na tomto zařízení.
