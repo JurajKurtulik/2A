@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, Check, RotateCcw, Star } from "lucide-react";
 import {
-  picturePath, pictures, preschoolGameIds, preschoolGames, preschoolRounds,
-  type Picture, type PreschoolGame, type PreschoolRound,
+  preschoolGameIds, preschoolGames, preschoolRounds,
+  type PreschoolGame, type PreschoolRound,
 } from "./preschool";
+import { BuildPuzzle, MazePuzzle, MorePuzzle, PictureCard, ShapePiece, StoryPuzzle } from "./PreschoolPuzzles";
 import "./preschool.css";
 
 type Play = {
@@ -13,10 +14,6 @@ type Play = {
   score: number;
   finished: boolean;
 };
-
-function PictureCard({ picture }: { picture: Picture }) {
-  return <img src={picturePath(picture)} alt={pictures[picture]} draggable={false} />;
-}
 
 export function PreschoolGames({ onComplete }: {
   onComplete: (game: PreschoolGame, score: number, total: number) => void;
@@ -107,7 +104,11 @@ export function PreschoolGames({ onComplete }: {
       <div className="preschool-games">
         {preschoolGameIds.map(id => (
           <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => start(id)}>
-            <PictureCard picture={preschoolGames[id].picture} />
+            {preschoolGames[id].picture === "build" ? (
+              <span className="preschool-build-icon" aria-hidden="true">
+                <ShapePiece shape="circle" /><ShapePiece shape="square" /><ShapePiece shape="triangle" />
+              </span>
+            ) : <PictureCard picture={preschoolGames[id].picture} />}
             <strong>{preschoolGames[id].title}</strong>
           </button>
         ))}
@@ -118,6 +119,12 @@ export function PreschoolGames({ onComplete }: {
 
   const game = preschoolGames[play.game];
   const round = play.rounds[play.index];
+  const feedback = {
+    solved,
+    onCorrect: () => { setSolved(true); playSound("correct"); },
+    onWrong: () => { setWrong(["mistake"]); playSound("retry"); },
+  };
+  const roundKey = `${play.game}-${play.index}`;
   return (
     <section className="preschool-play" aria-label={game.title}>
       <header className="preschool-toolbar">
@@ -140,7 +147,7 @@ export function PreschoolGames({ onComplete }: {
             {play.rounds.map((_, i) => <li key={i} aria-hidden="true" className={i <= play.index ? "reached" : ""} />)}
           </ol>
           {audioError && <p className="preschool-audio-error" role="status">Ťukni na reproduktor a poslechni si pokyn.</p>}
-          {round.kind === "choice" ? (
+          {round.kind === "choice" && (
             <>
               {!!round.prompt.length && <div className={`preschool-prompt ${play.game}`}>
                 {round.prompt.map((picture, i) => <PictureCard key={i} picture={picture} />)}
@@ -153,8 +160,7 @@ export function PreschoolGames({ onComplete }: {
                     disabled={solved}
                     onClick={() => {
                       if (picture === round.answer) {
-                        setSolved(true);
-                        playSound("correct");
+                        feedback.onCorrect();
                       } else {
                         if (!wrong.includes(picture)) setWrong([...wrong, picture]);
                         playSound("retry");
@@ -165,7 +171,8 @@ export function PreschoolGames({ onComplete }: {
                 ))}
               </div>
             </>
-          ) : (
+          )}
+          {round.kind === "feed" && (
             <>
               <div className="preschool-choices feeding" aria-label="Zajíčci">
                 {Array.from({ length: round.count }, (_, i) => <button type="button" key={i}
@@ -192,6 +199,10 @@ export function PreschoolGames({ onComplete }: {
               </div>
             </>
           )}
+          {round.kind === "story" && <StoryPuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "build" && <BuildPuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "maze" && <MazePuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "more" && <MorePuzzle key={roundKey} round={round} {...feedback} />}
           <div className="preschool-feedback" role="status">
             {solved ? <Check aria-label="Správně" /> : !!wrong.length && <RotateCcw aria-label="Zkus to znovu" />}
           </div>

@@ -2,11 +2,16 @@ import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { Document, ImageRun, Packer, Paragraph, TextRun } from "docx";
 import { loadFonts, saveDownload } from "./export";
+import { paperGraphic, renderPreschoolGraphic } from "./preschool-paper-art";
 import { picturePath, pictures, preschoolGames, type Picture, type PreschoolGame, type PreschoolRound } from "./preschool";
 
-type Cell = Picture | "blank";
+type Graphic = `graphic-${number}`;
+type Cell = Picture | "blank" | Graphic;
+const isGraphic = (cell: Cell): cell is Graphic => cell.startsWith("graphic-");
 const a4 = { width: 595.28, height: 841.89 };
-function rows(game: PreschoolGame, round: PreschoolRound): Cell[][] {
+function rows(game: PreschoolGame, round: PreschoolRound, index: number): Cell[][] {
+  if (round.kind === "build" || round.kind === "maze" || round.kind === "more") return [[`graphic-${index}`]];
+  if (round.kind === "story") return [round.options, ["blank", "blank", "blank"]];
   if (round.kind === "feed") return [
     Array.from({ length: round.count }, () => "rabbit"),
     Array.from({ length: round.count }, () => "carrot"),
@@ -22,7 +27,7 @@ async function imageBytes(picture: Picture) {
   return new Uint8Array(await response.arrayBuffer());
 }
 
-async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Picture, Uint8Array>) {
+async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Picture | Graphic, Uint8Array>) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const fonts = await loadFonts();
@@ -46,7 +51,9 @@ async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Pi
       const y = top - size - rowIndex * (game === "feed" ? 75 : 57);
       row.forEach((cell, index) => {
         const x = 70 + index * (size + gap);
-        if (cell === "blank") {
+        if (isGraphic(cell)) {
+          page.drawImage(images.get(cell)!, { x, y: top - 108, width: 410, height: 410 * paperGraphic.height / paperGraphic.width });
+        } else if (cell === "blank") {
           page.drawRectangle({ x, y, width: size, height: size, borderWidth: 1, borderColor: ink });
         } else {
           page.drawImage(images.get(cell)!, { x, y, width: size, height: size });
@@ -60,7 +67,7 @@ async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Pi
   return pdf.save();
 }
 
-async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<Picture, Uint8Array>) {
+async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<Picture | Graphic, Uint8Array>) {
   const { title, instruction } = preschoolGames[game];
   const document = new Document({
     creator: "Škola hrou",
@@ -78,8 +85,9 @@ async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<P
             new TextRun({ text: rowIndex === 0 ? `${index + 1}.   ` : "      ", bold: true }),
             ...row.flatMap(cell => [
               cell === "blank" ? new TextRun({ text: "□", size: 60 }) : new ImageRun({
-                type: "png", data: assets.get(cell)!, transformation: { width: 48, height: 48 },
-                altText: { name: cell, title: pictures[cell], description: pictures[cell] },
+                type: "png", data: assets.get(cell)!,
+                transformation: isGraphic(cell) ? { width: 345, height: 91 } : { width: 48, height: 48 },
+                altText: { name: cell, title: isGraphic(cell) ? title : pictures[cell], description: isGraphic(cell) ? instruction : pictures[cell] },
               }),
               new TextRun({ text: " " }),
             ]),
@@ -91,7 +99,7 @@ async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<P
   return Packer.toBlob(document);
 }
 
-async function printSheet(game: PreschoolGame, rounds: Cell[][][]) {
+async function printSheet(game: PreschoolGame, rounds: Cell[][][], graphics: Map<Graphic, Uint8Array>) {
   const root = document.createElement("div");
   root.className = "print-root preschool-paper-root";
   const page = document.createElement("article");
@@ -104,6 +112,11 @@ async function printSheet(game: PreschoolGame, rounds: Cell[][][]) {
   header.textContent = "Škola hrou / Předškolák";
   page.append(header, title, instruction);
   const images: HTMLImageElement[] = [];
+  const urls: string[] = [];
+  const cleanup = () => {
+    root.remove();
+    urls.forEach(url => URL.revokeObjectURL(url));
+  };
   rounds.forEach((group, index) => {
     const rowGroup = document.createElement("section");
     rowGroup.className = `preschool-paper-round ${game}`;
@@ -116,8 +129,16 @@ async function printSheet(game: PreschoolGame, rounds: Cell[][][]) {
         if (cell === "blank") line.append(document.createElement("span"));
         else {
           const image = new Image();
-          image.src = picturePath(cell);
-          image.alt = pictures[cell];
+          if (isGraphic(cell)) {
+            const url = URL.createObjectURL(new Blob([new Uint8Array(graphics.get(cell)!)], { type: "image/png" }));
+            urls.push(url);
+            image.src = url;
+            image.alt = preschoolGames[game].instruction;
+            image.className = "preschool-paper-graphic";
+          } else {
+            image.src = picturePath(cell);
+            image.alt = pictures[cell];
+          }
           images.push(image);
           line.append(image);
         }
@@ -130,19 +151,29 @@ async function printSheet(game: PreschoolGame, rounds: Cell[][][]) {
   document.body.append(root);
   try {
     await Promise.all(images.map(image => image.decode()));
-    window.addEventListener("afterprint", () => root.remove(), { once: true });
+    window.addEventListener("afterprint", cleanup, { once: true });
     window.print();
   } catch (error) {
-    root.remove();
+    window.removeEventListener("afterprint", cleanup);
+    cleanup();
     throw error;
   }
 }
 
 export async function downloadPreschoolSheet(game: PreschoolGame, rounds: PreschoolRound[], format: "pdf" | "docx" | "print") {
-  const groups = rounds.map(round => rows(game, round));
-  if (format === "print") return printSheet(game, groups);
-  const used = new Set(groups.flat(2).filter((cell): cell is Picture => cell !== "blank"));
-  const assets = new Map(await Promise.all([...used].map(async id => [id, await imageBytes(id)] as const)));
+  const groups = rounds.map((round, index) => rows(game, round, index));
+  const graphics = new Map<Graphic, Uint8Array>();
+  await Promise.all(rounds.map(async (round, index) => {
+    if (round.kind === "build" || round.kind === "maze" || round.kind === "more") {
+      graphics.set(`graphic-${index}`, await renderPreschoolGraphic(round));
+    }
+  }));
+  if (format === "print") return printSheet(game, groups, graphics);
+  const used = new Set(groups.flat(2).filter((cell): cell is Picture => cell !== "blank" && !isGraphic(cell)));
+  const assets = new Map<Picture | Graphic, Uint8Array>([
+    ...graphics,
+    ...await Promise.all([...used].map(async id => [id, await imageBytes(id)] as const)),
+  ]);
   const filename = `skola-hrou-predskolak-${game}.${format}`;
   if (format === "docx") {
     saveDownload(await exportDocx(game, groups, assets), filename);
