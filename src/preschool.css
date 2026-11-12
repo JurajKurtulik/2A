@@ -93,11 +93,12 @@
 .preschool-story-slots > span { border-style: dashed; color: #5f7964; font-size: 1.3rem; }
 .preschool-story-slots img, .preschool-maze img { width: 100%; height: 100%; object-fit: contain; }
 .preschool-story-slots, .preschool-choices.preschool-story-choices {
-  width: min(100%, calc(var(--puzzle-columns) * 91px));
+  width: min(100%, calc(var(--puzzle-columns) * 112px));
 }
 .preschool-choices.preschool-story-choices {
   display: grid; grid-template-columns: repeat(var(--puzzle-columns), minmax(0, 1fr)); gap: 6px;
 }
+.preschool-story-slots > span, .preschool-story-choices button { padding: 2px; }
 .preschool-story-choices button { width: 100%; min-width: 0; }
 .preschool-shape-grid { width: min(60%, 176px); }
 .preschool-shape-grid.model > span { background: #eef5e8; }
