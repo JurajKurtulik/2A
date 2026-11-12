@@ -4,6 +4,7 @@ Interaktivní procvičování pro předškoláky a 1.–9. třídu. Aktuální u
 
 ## Co aplikace umí
 
+- Pětikolové obrázkové hry pro předškoláky: třídění, doplňování vzorů, párování ponožek a krmení zajíčků. Každé kolo má namluvený český pokyn, který lze zopakovat reproduktorem. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
 - 11 matematických a 9 jazykových okruhů pro 2. třídu.
 - Krátká cvičení po osmi úlohách a krátké i delší cvičné písemky.
 - Vlastní sestavení písemky: výběr témat, 1 až 20 příkladů z každého tématu a nejvýše 120 příkladů celkem. Krátká a delší varianta slouží jako upravitelné předvolby.
