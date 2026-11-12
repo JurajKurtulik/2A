@@ -35,7 +35,7 @@ import {
   withOliverProfile,
   type Profile,
 } from "./profiles";
-import { grades, getGrade, type Grade } from "./grades";
+import { grades, getGrade, gradeLabel, PRESCHOOL_GRADE, type Grade } from "./grades";
 import { completionRecord, migrateHistory } from "./progress";
 import { ProgressError, readLogin, rememberLogin, signIn, useCloudProgress, type Login } from "./cloud-progress";
 type Data = {
@@ -110,7 +110,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
     document.documentElement.classList.toggle("theme-oliver", isOliver);
     return () => document.documentElement.classList.remove("theme-oliver");
   }, [isOliver]);
-  const grade = getGrade(profile.grade);
+  const grade = getGrade(profile.grade ?? (login.profile.id === "sarinka" ? PRESCHOOL_GRADE : undefined));
   const currentTopics = topicsForGrade(grade);
   const currentHistory = profile.history.filter((h) => h.grade === grade);
   const [historyFilter, setHistoryFilter] = useState<
@@ -519,7 +519,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
         >
           {grades.map((g) => (
             <option key={g} value={g}>
-              {g}. třída
+              {gradeLabel(g)}
             </option>
           ))}
         </select>
@@ -530,7 +530,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
     return (
       <section className="empty grade-empty">
         <span>🌱</span>
-        <h2>{grade}. třída teprve vyroste</h2>
+        <h2>{grade === PRESCHOOL_GRADE ? gradeLabel(grade) : `${gradeLabel(grade)} teprve vyroste`}</h2>
         <p>
           Pro tento ročník zatím nemáme učivo. Nová témata sem budeme postupně
           přidávat.

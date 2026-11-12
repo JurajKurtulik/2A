@@ -2,15 +2,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { completionRecord, migrateHistory } from "../src/progress";
 import { topicsForGrade } from "../src/content";
+import { gradeLabel, grades, PRESCHOOL_GRADE } from "../src/grades";
 import {
   createWorksheet,
   validateSelection,
   worksheetQuestions,
 } from "../src/worksheet";
 test("Grades have isolated catalogs and cannot generate another grade's topics", () => {
+  assert.equal(grades[0], PRESCHOOL_GRADE);
+  assert.equal(gradeLabel(PRESCHOOL_GRADE), "Předškolák");
   assert.equal(topicsForGrade(2, "math").length, 11);
   assert.equal(topicsForGrade(2, "czech").length, 9);
-  for (const grade of [1, 3, 4, 5, 6, 7, 8, 9] as const) {
+  for (const grade of grades.filter(grade => grade !== 2)) {
     assert.equal(topicsForGrade(grade).length, 0);
     assert.ok(
       validateSelection("math", [{ topic: "arithmetic", count: 2 }], grade),
