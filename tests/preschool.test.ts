@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { pictures, preschoolGameIds, preschoolRounds } from "../src/preschool";
+import { directions, mazeStep, pictures, preschoolGameIds, preschoolRounds, type Direction } from "../src/preschool";
 
 test("Preschool rounds have one solution and local illustrations and speech", () => {
   assert.ok(existsSync("public/preschool/audio/correct.wav"));
@@ -20,6 +20,33 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
       if (round.kind === "feed") {
         assert.equal(game, "feed");
         assert.ok(round.count >= 1 && round.count <= 6);
+        continue;
+      }
+      if (round.kind === "story") {
+        assert.equal(new Set(round.order).size, 3);
+        assert.deepEqual([...round.options].sort(), [...round.order].sort());
+        assert.notDeepEqual(round.options, round.order);
+        continue;
+      }
+      if (round.kind === "build") {
+        assert.equal(round.cells.length, round.columns * 2);
+        assert.ok(round.cells.filter(Boolean).length >= 2);
+        continue;
+      }
+      if (round.kind === "more") {
+        assert.notEqual(...round.counts);
+        assert.ok(round.counts.every(count => count >= 1 && count <= 6));
+        continue;
+      }
+      if (round.kind === "maze") {
+        const seen = new Set([round.start]);
+        for (const cell of seen) {
+          for (const direction of Object.keys(directions) as Direction[]) {
+            const next = mazeStep(round, cell, direction);
+            if (next !== null) seen.add(next);
+          }
+        }
+        assert.ok(seen.has(round.goal), "The house must be reachable");
         continue;
       }
       assert.equal(new Set(round.options).size, round.options.length);
