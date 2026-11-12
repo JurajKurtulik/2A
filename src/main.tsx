@@ -30,30 +30,24 @@ import {
   worksheetQuestions,
   type Worksheet,
 } from "./worksheet";
-import { migrateProfileNames } from "./profiles";
-import { grades, getGrade, type Grade } from "./grades";
 import {
-  completionRecord,
-  migrateHistory,
-  type HistoryEntry,
-} from "./progress";
-type Profile = {
-  name: string;
-  avatar: string;
-  history: HistoryEntry[];
-  grade?: Grade;
-  recent: string[];
-};
+  migrateProfileNames,
+  OLIVER_PROFILE_INDEX,
+  withOliverProfile,
+  type Profile,
+} from "./profiles";
+import { grades, getGrade, type Grade } from "./grades";
+import { completionRecord, migrateHistory } from "./progress";
 type Data = {
   profiles: Profile[];
   active: number;
   profileNamesVersion?: number;
 };
 const initial: Data = {
-  profiles: [
+  profiles: withOliverProfile([
     { name: "Terezka", avatar: "🦊", history: [], recent: [] },
     { name: "Nelinka", avatar: "🐰", history: [], recent: [] },
-  ],
+  ]),
   active: 0,
   profileNamesVersion: 1,
 };
@@ -61,23 +55,28 @@ function readData(): Data {
   try {
     const d = JSON.parse(localStorage.getItem("skola-hrou-v1") || "null");
     if (
-      d?.profiles?.length === 2 &&
+      Array.isArray(d?.profiles) &&
+      (d.profiles.length === 2 || d.profiles.length === 3) &&
       d.profiles.every(
         (p: Profile) =>
           typeof p.name === "string" &&
           Array.isArray(p.history) &&
           Array.isArray(p.recent),
       ) &&
-      (d.active === 0 || d.active === 1)
-    )
+      Number.isInteger(d.active) &&
+      d.active >= 0 &&
+      d.active < d.profiles.length
+    ) {
+      const migrated = migrateProfileNames<Data>(d);
       return {
-        ...migrateProfileNames(d),
-        profiles: migrateProfileNames(d).profiles.map((p: Profile) => ({
+        ...migrated,
+        profiles: withOliverProfile(migrated.profiles).map((p) => ({
           ...p,
           grade: getGrade(p.grade),
           history: p.history.map(migrateHistory),
         })),
       };
+    }
   } catch {}
   return initial;
 }
@@ -105,6 +104,7 @@ function App() {
   const [handwritingDirty, setHandwritingDirty] = useState(false);
   const hasUnfinished = Boolean(session && !session.done) || handwritingDirty;
   const profile = data.profiles[data.active];
+  const isOliver = data.active === OLIVER_PROFILE_INDEX;
   const grade = getGrade(profile.grade);
   const currentTopics = topicsForGrade(grade);
   const currentHistory = profile.history.filter((h) => h.grade === grade);
@@ -234,19 +234,38 @@ function App() {
       <div className="mascot" aria-hidden="true">
         <div className="orbit one">✦</div>
         <div className="orbit two">✧</div>
-        <div className="owl">
-          <div className="ear left" />
-          <div className="ear right" />
-          <div className="face">
-            <span className="eye">●</span>
-            <span className="eye">●</span>
-            <span className="beak" />
+        {isOliver ? (
+          <div className="badger">
+            <div className="badger-pack" />
+            <div className="badger-body" />
+            <div className="badger-strap" />
+            <div className="badger-head">
+              <span className="badger-ear left" />
+              <span className="badger-ear right" />
+              <span className="badger-mask left">
+                <i />
+              </span>
+              <span className="badger-mask right">
+                <i />
+              </span>
+              <span className="badger-nose" />
+            </div>
           </div>
-          <div className="wing" />
-          <div className="book">
-            A<span>＋</span>
+        ) : (
+          <div className="owl">
+            <div className="ear left" />
+            <div className="ear right" />
+            <div className="face">
+              <span className="eye">●</span>
+              <span className="eye">●</span>
+              <span className="beak" />
+            </div>
+            <div className="wing" />
+            <div className="book">
+              A<span>＋</span>
+            </div>
           </div>
-        </div>
+        )}
         <span className="mascot-label">Malé kroky. Velké objevy.</span>
       </div>
     );
@@ -630,15 +649,15 @@ function App() {
                 <span className="eyebrow">TVŮJ MALÝ SVĚT VELKÝCH OBJEVŮ</span>
                 <span className="date-label">Učivo pro {grade}. třídu</span>
               </div>
-              <section className="hero">
+              <section className={isOliver ? "hero hero-oliver" : "hero"}>
                 <div className="hero-copy">
                   <span className="pill">
                     <span /> Každý pokus se počítá
                   </span>
                   <h1>
-                    Ahoj, objevitelko!
+                    {isOliver ? "Ahoj, objeviteli!" : "Ahoj, objevitelko!"}
                     <br />
-                    Co dnes <em>prozkoumáme?</em>
+                    Co dnes <em>{isOliver ? "podnikneme?" : "prozkoumáme?"}</em>
                   </h1>
                   <p>
                     Trochu počítání, pár slov a spousta nových objevů.

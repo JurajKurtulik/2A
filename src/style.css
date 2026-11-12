@@ -378,6 +378,96 @@ h1 em {
   height: 240px;
   margin-right: 5px;
 }
+.hero-oliver {
+  background: #e6f1fb;
+  border-color: #d4e4f3;
+}
+.hero-oliver::after { background: #d7e9fa; }
+.hero-oliver h1 em { color: #295f87; }
+.hero-oliver p,
+.hero-oliver .hero-note,
+.hero-oliver .mascot-label { color: #405d75; }
+.hero-oliver .primary { background: #285f88; }
+.hero-oliver .primary:hover { background: #1f4c70; }
+.badger {
+  position: absolute;
+  width: 155px;
+  height: 174px;
+  top: 25px;
+  left: 44px;
+  transform: rotate(5deg);
+}
+.badger-pack {
+  position: absolute;
+  inset: 80px 0 8px 72px;
+  background: #d88339;
+  border-radius: 30px 26px 22px 20px;
+  box-shadow: inset -8px -6px #b6662b;
+}
+.badger-body {
+  position: absolute;
+  inset: 75px 31px 0 16px;
+  border-radius: 48% 48% 35% 35%;
+  background: #596477;
+  box-shadow: inset -9px -7px #465165, 0 12px 0 -7px #bbd3e7;
+}
+.badger-strap {
+  position: absolute;
+  top: 92px;
+  right: 48px;
+  width: 12px;
+  height: 66px;
+  border-radius: 8px;
+  background: #edaa62;
+  transform: rotate(-21deg);
+}
+.badger-head {
+  position: absolute;
+  inset: 13px 20px 62px 5px;
+  border-radius: 46% 46% 48% 48%;
+  background: #f7f5ec;
+  box-shadow: inset -5px -6px #e2e3df;
+}
+.badger-ear {
+  position: absolute;
+  top: -7px;
+  width: 29px;
+  height: 28px;
+  border: 5px solid #f7f5ec;
+  border-radius: 50%;
+  background: #3d4658;
+}
+.badger-ear.left { left: 3px; }
+.badger-ear.right { right: 3px; }
+.badger-mask {
+  position: absolute;
+  top: 9px;
+  width: 31px;
+  height: 76px;
+  background: #374153;
+  border-radius: 48% 42% 52% 51%;
+}
+.badger-mask.left { left: 25px; transform: rotate(-20deg); }
+.badger-mask.right { right: 25px; transform: rotate(20deg); }
+.badger-mask > i {
+  position: absolute;
+  top: 29px;
+  left: 11px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #1a2030;
+  box-shadow: inset 2px 2px #f9fbff;
+}
+.badger-nose {
+  position: absolute;
+  bottom: 12px;
+  left: 55px;
+  width: 20px;
+  height: 14px;
+  border-radius: 50% 50% 60% 60%;
+  background: #262e3c;
+}
 .owl {
   position: absolute;
   width: 144px;
@@ -1506,6 +1596,9 @@ footer {
     height: 240px;
     margin: 0;
     opacity: 0.85;
+  }
+  .hero-oliver .mascot {
+    bottom: -6px;
   }
   .mascot-label {
     display: none;
