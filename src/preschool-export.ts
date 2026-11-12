@@ -10,12 +10,8 @@ type Cell = Picture | "blank" | Graphic;
 const isGraphic = (cell: Cell): cell is Graphic => cell.startsWith("graphic-");
 const a4 = { width: 595.28, height: 841.89 };
 function rows(game: PreschoolGame, round: PreschoolRound, index: number): Cell[][] {
-  if (round.kind === "build" || round.kind === "maze" || round.kind === "more") return [[`graphic-${index}`]];
+  if (round.kind === "build" || round.kind === "maze" || round.kind === "more" || round.kind === "feed") return [[`graphic-${index}`]];
   if (round.kind === "story") return [round.options, round.options.map(() => "blank")];
-  if (round.kind === "feed") return [
-    Array.from({ length: round.count }, () => "rabbit"),
-    Array.from({ length: round.count }, () => "carrot"),
-  ];
   const prompt: Cell[] = [...round.prompt];
   if (game === "pattern") prompt.push("blank");
   return prompt.length ? [prompt, round.options] : [round.options];
@@ -46,9 +42,9 @@ async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Pi
     const top = 703 - i * 133;
     page.drawText(`${i + 1}.`, { x: 42, y: top - 21, size: 12, font: bold, color: ink });
     group.forEach((row, rowIndex) => {
-      const gap = game === "feed" ? 12 : 4;
+      const gap = 4;
       const size = Math.min(45, (a4.width - 118 - (row.length - 1) * gap) / row.length);
-      const y = top - size - rowIndex * (game === "feed" ? 75 : 57);
+      const y = top - size - rowIndex * 57;
       row.forEach((cell, index) => {
         const x = 70 + index * (size + gap);
         if (isGraphic(cell)) {
@@ -81,7 +77,7 @@ async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<P
         new Paragraph({ text: instruction, spacing: { after: 250 } }),
         ...rounds.flatMap((group, index) => group.map((row, rowIndex) => new Paragraph({
           keepNext: rowIndex + 1 < group.length,
-          spacing: { before: rowIndex ? (game === "feed" ? 320 : 60) : 100, after: rowIndex + 1 === group.length ? 170 : 0 },
+          spacing: { before: rowIndex ? 60 : 100, after: rowIndex + 1 === group.length ? 170 : 0 },
           children: [
             new TextRun({ text: rowIndex === 0 ? `${index + 1}.   ` : "      ", bold: true }),
             ...row.flatMap(cell => [
@@ -182,7 +178,7 @@ export async function downloadPreschoolSheet(game: PreschoolGame, rounds: Presch
   const groups = rounds.map((round, index) => rows(game, round, index));
   const graphics = new Map<Graphic, Uint8Array>();
   await Promise.all(rounds.map(async (round, index) => {
-    if (round.kind === "build" || round.kind === "maze" || round.kind === "more") {
+    if (round.kind === "build" || round.kind === "maze" || round.kind === "more" || round.kind === "feed") {
       graphics.set(`graphic-${index}`, await renderPreschoolGraphic(round));
     }
   }));

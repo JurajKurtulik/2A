@@ -6,6 +6,7 @@ import {
   type PreschoolGame, type PreschoolRound,
 } from "./preschool";
 import { BuildPuzzle, MazePuzzle, MorePuzzle, PictureCard, ShapePiece, StoryPuzzle } from "./PreschoolPuzzles";
+import { FeedPuzzle } from "./FeedPuzzle";
 import "./preschool.css";
 
 type Play = {
@@ -26,9 +27,6 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
   const [chooseStory, setChooseStory] = useState(false);
   const [wrong, setWrong] = useState<string[]>([]);
   const [solved, setSolved] = useState(false);
-  const [carrot, setCarrot] = useState<number | null>(null);
-  const [fed, setFed] = useState<number[]>([]);
-  const [usedCarrots, setUsedCarrots] = useState<number[]>([]);
   const [audioError, setAudioError] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState(false);
@@ -45,15 +43,15 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
     audio.current = null;
   }, []);
 
-  function playSound(sound: PreschoolGame | "correct" | "retry") {
-    setAudioError(false);
+  function playSound(sound: PreschoolGame | "correct" | "retry" | "crunch") {
+    if (sound !== "crunch") setAudioError(false);
     const src = new URL(`./preschool/audio/${sound}.wav`, document.baseURI).href;
     const player = audio.current ??= new Audio();
     if (player.src !== src) player.src = src;
-    player.volume = sound === "correct" ? 0.65 : 1;
+    player.volume = sound === "crunch" ? 0.55 : sound === "correct" ? 0.65 : 1;
     player.currentTime = 0;
     void player.play().catch((error: unknown) => {
-      if (sound !== "correct" && sound !== "retry" && player.src === src &&
+      if (sound !== "correct" && sound !== "retry" && sound !== "crunch" && player.src === src &&
         !(error instanceof DOMException && error.name === "AbortError")) setAudioError(true);
     });
   }
@@ -61,9 +59,6 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
   function resetRound() {
     setWrong([]);
     setSolved(false);
-    setCarrot(null);
-    setFed([]);
-    setUsedCarrots([]);
   }
 
   function start(game: PreschoolGame, level: StoryLevel = 1) {
@@ -201,33 +196,7 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
               </div>
             </>
           )}
-          {round.kind === "feed" && (
-            <>
-              <div className="preschool-choices feeding" aria-label="Zajíčci">
-                {Array.from({ length: round.count }, (_, i) => <button type="button" key={i}
-                  aria-label={`Zajíček ${i + 1}${fed.includes(i) ? ", nakrmený" : ""}`}
-                  className={fed.includes(i) ? "correct" : ""} disabled={solved || fed.includes(i)}
-                  onClick={() => {
-                    if (carrot === null) return;
-                    setFed([...fed, i]);
-                    setUsedCarrots([...usedCarrots, carrot]);
-                    setCarrot(null);
-                    playSound("correct");
-                    if (fed.length + 1 === round.count) setSolved(true);
-                  }}>
-                  <PictureCard picture="rabbit" />
-                  {fed.includes(i) && <span className="preschool-fed" aria-hidden="true"><PictureCard picture="carrot" /></span>}
-                </button>)}
-              </div>
-              <div className="preschool-choices feeding carrots" aria-label="Mrkve">
-                {Array.from({ length: round.count }, (_, i) => <button type="button" key={i}
-                  aria-label={`Mrkev ${i + 1}`} aria-pressed={carrot === i} disabled={usedCarrots.includes(i)}
-                  onClick={() => setCarrot(carrot === i ? null : i)}>
-                  <PictureCard picture="carrot" />
-                </button>)}
-              </div>
-            </>
-          )}
+          {round.kind === "feed" && <FeedPuzzle key={roundKey} round={round} {...feedback} onCrunch={() => playSound("crunch")} />}
           {round.kind === "story" && <StoryPuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "build" && <BuildPuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "maze" && <MazePuzzle key={roundKey} round={round} {...feedback} />}

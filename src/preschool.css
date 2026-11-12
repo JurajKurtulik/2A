@@ -58,10 +58,46 @@
 .preschool-choices button:hover:not(:disabled), .preschool-speaker:hover { border-color: #438461; background: #f0faee; }
 .preschool-choices button.correct { border-color: #438461; background: #e4f4e4; }
 .preschool-choices button.incorrect { opacity: .48; border-style: dashed; }
-.preschool-choices.feeding button { width: clamp(43px, 12vw, 104px); }
 .preschool-choices button[aria-pressed="true"] { border-color: #b77a19; background: #fff0c9; }
-.preschool-choices.carrots button:disabled { visibility: hidden; }
-.preschool-fed { position: absolute; inset: auto 2px 2px auto; width: 37%; aspect-ratio: 1; }
+.feed-puzzle { display: grid; justify-items: center; gap: 16px; width: min(100%, 530px); }
+.feed-rabbits { display: flex; justify-content: center; gap: clamp(8px, 4vw, 32px); width: 100%; }
+.feed-rabbit { display: grid; justify-items: center; width: min(48%, 200px); }
+.feed-target {
+  display: grid; justify-items: center; gap: 4px; width: 100%; background: transparent;
+  border: 0; padding: 0 0 6px; cursor: pointer;
+}
+.feed-target img { width: clamp(60px, 16vw, 114px); aspect-ratio: 1; object-fit: contain; }
+.feed-dots { display: flex; gap: 6px; padding: 7px 13px; border-radius: 16px; background: #fff3c8; }
+.feed-dots span { width: 10px; height: 10px; background: #795624; border-radius: 50%; }
+.feed-bowl, .feed-basket {
+  position: relative; isolation: isolate; display: flex; flex-wrap: wrap; justify-content: center;
+  align-content: center; gap: 3px; padding: 5px; border: 2px solid #b3cfc0;
+}
+.feed-bowl { width: 100%; min-height: 63px; border-radius: 10px 10px 36px 36px; background: #e0f1eb; }
+.feed-rabbit:nth-child(2) .feed-bowl { background: #e5edff; border-color: #b8c9e9; }
+.feed-bowl[data-result="retry"] { outline: 2px dashed #ac651e; outline-offset: 3px; }
+.feed-bowl[data-result="served"]::after { content: "✓"; font-size: 30px; color: #286749; }
+.feed-basket {
+  width: min(100%, 360px); min-height: 62px; border-radius: 10px 10px 24px 24px;
+  background: #f8e5c6; border-color: #d3af74;
+}
+.feed-drop-area { position: absolute; inset: 0; width: 100%; border: 0; border-radius: inherit; background: none; cursor: pointer; }
+.feed-carrot {
+  position: relative; display: grid; place-items: center; width: clamp(34px, 9vw, 48px); height: 46px;
+  padding: 2px; border: 2px solid transparent; border-radius: 12px; background: #fffaf0;
+  touch-action: none; cursor: grab;
+}
+.feed-carrot[aria-pressed="true"] { border-color: #946119; background: #fff2bf; }
+.feed-carrot img, .feed-drag img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
+.feed-drag { position: fixed; z-index: 20; width: 52px; height: 52px; transform: translate(-50%, -50%); pointer-events: none; }
+.feed-bell { display: grid; place-items: center; width: 70px; height: 52px; border: 2px solid #e0b157; border-radius: 18px; background: #ffda77; color: #623b12; cursor: pointer; }
+.feed-bell svg { width: 29px; height: 29px; }
+@media (prefers-reduced-motion: no-preference) {
+  .feed-bowl[data-result="served"]::after { animation: feed-served .28s ease-out; }
+  .feed-rabbit:has([data-result="served"]) .feed-target img { animation: feed-nibble .18s ease-in-out 3 alternate; }
+  @keyframes feed-served { from { transform: scale(.5); } to { transform: scale(1); } }
+  @keyframes feed-nibble { to { transform: translateY(4px) rotate(-4deg); } }
+}
 .preschool-feedback { min-height: 30px; color: #36714f; }
 .preschool-feedback svg { width: 30px; height: 30px; }
 .preschool-next { width: 74px; height: 56px; border-radius: 20px; background: #286749; color: white; }
