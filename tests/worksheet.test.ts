@@ -12,7 +12,11 @@ import {
   type Worksheet,
 } from "../src/worksheet";
 import { exportDocx, exportPdf, prepareLayout } from "../src/export";
-import { migrateProfileNames } from "../src/profiles";
+import {
+  migrateProfileNames,
+  withOliverProfile,
+  type Profile,
+} from "../src/profiles";
 
 const fonts = Promise.all(
   ["Regular", "Bold"].map((name) =>
@@ -67,6 +71,25 @@ test("Profile migration renames both slots once and retains history and active c
   assert.equal(next.active, 1);
   next.profiles[0].name = "Tereza";
   assert.equal(migrateProfileNames(next).profiles[0].name, "Tereza");
+});
+test("Adding Oliver preserves existing profiles and runs only once", () => {
+  const profiles: Profile[] = [
+    { name: "Tereza", avatar: "🦊", history: [], recent: ["a"], grade: 4 },
+    { name: "Neli", avatar: "🐰", history: [], recent: ["b"], grade: 2 },
+  ];
+  const next = withOliverProfile(profiles);
+  assert.deepEqual(next.slice(0, 2), profiles);
+  assert.deepEqual(next[2], {
+    name: "Oliver",
+    avatar: "🦡",
+    history: [],
+    recent: [],
+  });
+  const renamed = [
+    ...next.slice(0, 2),
+    { ...next[2], name: "Oli", recent: ["c"] },
+  ];
+  assert.equal(withOliverProfile(renamed), renamed);
 });
 test("Paper conversion removes choices and creates writing space from interactive tasks", () => {
   const w = createWorksheet("math", [

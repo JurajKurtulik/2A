@@ -296,7 +296,7 @@ export function layoutPaper(
         i + s.columns >= s.items.length
       )
         rows.push({
-          cells: ["Moje kontrola: Prošla jsem si všechny odpovědi."],
+          cells: ["Zkontroluj si všechny odpovědi."],
           size: 11,
           height: 24,
         });

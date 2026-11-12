@@ -12,7 +12,7 @@ Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky 
 - Doplňování čísel, výběr odpovědi, řazení kartiček klikáním i přetahováním, rozdělování slabik a opravy velkých písmen.
 - Běžné cvičení má jedno tlačítko: nejdřív Zkontrolovat s vysvětlením, potom Další úloha (na konci Vyhodnotit). Změna odpovědi znovu vyžaduje kontrolu. Písemka nabízí řešení a vysvětlení až po závěrečném vyhodnocení.
 - Vysvětlení řešení, procvičení obtížnějších témat a nové varianty.
-- Dva oddělené místní profily Terezka a Nelinka. Přejmenování původních profilů zachovává historii a vybraný profil. Historie zachovává výsledek před nápovědou i po opravě.
+- Tři oddělené místní profily Terezka, Nelinka a Oliver. Oliver má vlastní uvítání a jezevce s batohem. Přidání Olivera zachovává historii a vybraný profil. Historie zachovává výsledek před nápovědou i po opravě.
 - Responzivní rozhraní pro počítač a mobil/tablet, ovládání klávesnicí.
 
 Pokrok se ukládá do `localStorage` pod klíčem `skola-hrou-v1`, pouze v daném prohlížeči. Bez serveru, účtů, sledování a odesílání dětských výsledků. Smazání dat webu odstraní pokrok; zařízení mezi sebou data nesdílejí. Rozpracované cvičení se zatím po obnovení stránky neobnoví.
