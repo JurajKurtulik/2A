@@ -7,6 +7,7 @@ import {
 } from "./preschool";
 import { BuildPuzzle, MazePuzzle, MorePuzzle, PictureCard, ShapePiece, StoryPuzzle } from "./PreschoolPuzzles";
 import { FeedPuzzle } from "./FeedPuzzle";
+import { BalancePuzzle, DoorPuzzle, StreetPuzzle, TripPuzzle } from "./PreschoolNumberGames";
 import "./preschool.css";
 
 type Play = {
@@ -201,6 +202,10 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
           {round.kind === "build" && <BuildPuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "maze" && <MazePuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "more" && <MorePuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "trip" && <TripPuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "balance" && <BalancePuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "door" && <DoorPuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "street" && <StreetPuzzle key={roundKey} round={round} {...feedback} />}
           <div className="preschool-feedback" role="status">
             {solved ? <Check aria-label="Správně" /> : !!wrong.length && <RotateCcw aria-label="Zkus to znovu" />}
           </div>

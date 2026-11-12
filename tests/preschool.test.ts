@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { directions, mazeStep, pictureLabel, picturePath, pictures, preschoolGameIds, preschoolRounds, type Direction } from "../src/preschool";
+import { directions, matchingBear, mazeStep, pictureLabel, picturePath, pictures, preschoolGameIds, preschoolRounds,
+  streetFarIndex, streetNeighborIndex, tripCount, type Direction } from "../src/preschool";
 import { storyBanks, storyFrameId } from "../src/banks/preschool-stories";
 
 test("Preschool rounds have one solution and local illustrations and speech", () => {
@@ -19,6 +20,36 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
     assert.equal(rounds.length, 5);
     if (game === "pair") assert.equal(new Set(rounds.map(round => round.kind === "choice" && round.answer)).size, 5);
     for (const round of rounds) {
+      if (round.kind === "trip") {
+        const riders = [...round.stay, ...round.exit, ...round.waiting];
+        assert.equal(new Set(riders).size, riders.length);
+        assert.ok(round.stay.length + round.exit.length <= 5);
+        assert.ok(round.options.every(count => count >= 1 && count <= 5));
+        assert.equal(round.options.filter(count => count === tripCount(round)).length, 1);
+        continue;
+      }
+      if (round.kind === "balance") {
+        const total = round.starting.reduce((sum, count) => sum + count, 0);
+        assert.ok(total >= 2 && total <= 6 && total % 2 === 0);
+        assert.ok(round.starting[2] || round.starting[0] !== round.starting[1]);
+        continue;
+      }
+      if (round.kind === "door") {
+        assert.equal(round.options.filter(option => matchingBear(option, round.clue)).length, 1);
+        assert.ok(round.options.some(option => option.color === round.clue.color && option.pattern !== round.clue.pattern));
+        assert.ok(round.options.some(option => option.color !== round.clue.color && option.pattern === round.clue.pattern));
+        continue;
+      }
+      if (round.kind === "street") {
+        const fixedHouses = [round.anchor, round.neighbor, ...(round.farHouse ? [round.farHouse] : [])];
+        const fixedSlots = [round.anchorIndex, streetNeighborIndex(round), ...(round.farHouse ? [streetFarIndex(round)] : [])];
+        assert.equal(new Set(round.houses).size, round.houses.length);
+        assert.equal(new Set(fixedHouses).size, round.houses.length - 1);
+        assert.equal(new Set(fixedSlots).size, round.houses.length - 1);
+        assert.ok(fixedHouses.every(house => round.houses.includes(house)));
+        assert.ok(fixedSlots.every(slot => slot >= 0 && slot < round.houses.length));
+        continue;
+      }
       if (round.kind === "feed") {
         assert.equal(game, "feed");
         assert.ok(round.portions.length === 1 || round.portions.length === 2);

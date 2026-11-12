@@ -16,7 +16,9 @@ export const pictures = {
   caterpillar: "housenka", chrysalis: "kukla", butterfly: "motýl",
   cone: "prázdný kornout", scoop: "kornout s kopečkem", sundae: "zmrzlina s třešní",
   wholeApple: "celé jablko", bittenApple: "nakousnuté jablko", appleCore: "ohryzek",
-  house: "domeček",
+  house: "domeček", tripBus: "výletní autobus", balanceScale: "váha", logicBear: "medvídek",
+  streetRed: "červený domeček", streetBlue: "modrý domeček", streetGold: "žlutý domeček",
+  streetPurple: "fialový domeček", streetTree: "strom",
 } as const;
 type GamePicture = keyof typeof pictures;
 type StoryPicture = ReturnType<typeof storyFrameId>;
@@ -35,6 +37,10 @@ export const preschoolGames = {
   build: { title: "Postav podle obrázku", picture: "build", instruction: "Překresli tvary do prázdných políček podle vzoru." },
   maze: { title: "Doveď kočku domů", picture: "house", instruction: "Nakresli kočce cestu k domečku po volných políčkách." },
   more: { title: "Kde je víc?", picture: "strawberry", instruction: "Zakroužkuj skupinu, ve které je víc obrázků." },
+  trip: { title: "Výlet autobusem", picture: "tripBus", instruction: "Škrtni vystupující, přidej čekající a zakroužkuj správný počet teček." },
+  balance: { title: "Vyvaž váhu", picture: "balanceScale", instruction: "Rozděl všechna jablka tak, aby jich bylo na obou miskách stejně." },
+  door: { title: "Kdo bydlí v domečku?", picture: "logicBear", instruction: "Zakroužkuj medvídka, který má stejnou barvu i stejný vzorek jako nápověda." },
+  street: { title: "Domečky v řadě", picture: "streetRed", instruction: "Spoj domečky s místy podle nápovědy. Šipka míří k sousednímu místu u stromu." },
 } as const;
 export type PreschoolGame = keyof typeof preschoolGames;
 export const preschoolGameIds = Object.keys(preschoolGames) as PreschoolGame[];
@@ -52,7 +58,33 @@ export type Shape = keyof typeof shapes;
 export type BuildRound = { kind: "build"; columns: number; cells: (Shape | null)[] };
 export type MazeRound = { kind: "maze"; map: readonly string[]; start: number; goal: number };
 export type MoreRound = { kind: "more"; picture: Picture; counts: [number, number] };
-export type PreschoolRound = ChoiceRound | FeedRound | StoryRound | BuildRound | MazeRound | MoreRound;
+export type TripRound = {
+  kind: "trip"; stay: Picture[]; exit: Picture[]; waiting: Picture[]; options: number[];
+};
+export type BalanceRound = { kind: "balance"; starting: [left: number, right: number, basket: number] };
+export const bearColors = {
+  blue: { label: "modrá", color: "#3274ad" },
+  yellow: { label: "žlutá", color: "#edb73f" },
+  pink: { label: "růžová", color: "#b84c77" },
+};
+export const bearPatterns = { dots: "puntíky", stripes: "pruhy", checker: "šachovnice" };
+export type BearColor = keyof typeof bearColors;
+export type BearPattern = keyof typeof bearPatterns;
+export type BearPatch = { color: BearColor; pattern: BearPattern };
+export type DoorRound = { kind: "door"; clue: BearPatch; options: BearPatch[] };
+export type StreetHouse = "streetRed" | "streetBlue" | "streetGold" | "streetPurple";
+export type StreetRound = {
+  kind: "street"; houses: StreetHouse[]; treeLeft: boolean;
+  anchor: StreetHouse; anchorIndex: number; neighbor: StreetHouse; farHouse?: StreetHouse;
+};
+export type GraphicRound = FeedRound | BuildRound | MazeRound | MoreRound | TripRound | BalanceRound | DoorRound | StreetRound;
+export type PreschoolRound = ChoiceRound | StoryRound | GraphicRound;
+
+export const tripCount = (round: TripRound) => round.stay.length + round.waiting.length;
+export const dotLayouts: Record<number, number[]> = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9] };
+export const matchingBear = (a: BearPatch, b: BearPatch) => a.color === b.color && a.pattern === b.pattern;
+export const streetNeighborIndex = (round: StreetRound) => round.anchorIndex + (round.treeLeft ? -1 : 1);
+export const streetFarIndex = (round: StreetRound) => round.treeLeft ? round.houses.length - 1 : 0;
 
 function shuffle<T>(values: readonly T[]): T[] {
   const shuffled = [...values];
@@ -65,6 +97,7 @@ function shuffle<T>(values: readonly T[]): T[] {
 
 const fruit: Picture[] = ["apple", "pear", "banana", "strawberry", "orange", "plum", "pineapple"];
 const animals: Picture[] = ["cat", "dog", "rabbit", "sheep", "cow", "pig", "horse"];
+const streetHouses: StreetHouse[] = ["streetRed", "streetBlue", "streetGold", "streetPurple"];
 const vehicles: Picture[] = ["car", "bus", "train", "bike"];
 const socks: Picture[] = ["stripes", "dots", "stars", "zigzags", "hearts", "diamonds", "bands"];
 const nature: Picture[] = ["carrot", "leaf", "acorn", "mushroom", "flower"];
@@ -169,5 +202,42 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         kind: "more", picture: objects[index], counts: Math.random() < .5 ? pair : [pair[1], pair[0]],
       }));
     }
+    case "trip":
+      return ([[1, 0, 1], [2, 1, 1], [2, 1, 2], [3, 1, 2], [1, 2, 2]] as const).map(([stay, exit, waiting]) => {
+        const riders = shuffle(animals);
+        const answer = stay + waiting;
+        return {
+          kind: "trip", stay: riders.slice(0, stay), exit: riders.slice(stay, stay + exit),
+          waiting: riders.slice(stay + exit, stay + exit + waiting),
+          options: shuffle(answer === 5 ? [3, 4, 5] : [answer - 1, answer, answer + 1]),
+        };
+      });
+    case "balance":
+      return ([[0, 0, 2], [1, 0, 3], [1, 3, 0], [0, 0, 6], [4, 1, 1]] as [number, number, number][]).map(([left, right, basket]) => ({
+        kind: "balance", starting: Math.random() < .5 ? [left, right, basket] : [right, left, basket],
+      }));
+    case "door": {
+      const colors = Object.keys(bearColors) as BearColor[];
+      const patterns = Object.keys(bearPatterns) as BearPattern[];
+      const clues = shuffle(colors.flatMap(color => patterns.map(pattern => ({ color, pattern })))).slice(0, 5);
+      return clues.map((clue, index) => {
+        const [otherColor] = shuffle(colors.filter(color => color !== clue.color));
+        const [otherPattern] = shuffle(patterns.filter(pattern => pattern !== clue.pattern));
+        const options = [clue, { color: otherColor, pattern: clue.pattern }, { color: clue.color, pattern: otherPattern }];
+        if (index >= 2) options.push({ color: otherColor, pattern: otherPattern });
+        return { kind: "door", clue, options: shuffle(options) };
+      });
+    }
+    case "street":
+      return Array.from({ length: 5 }, (_, index) => {
+        const size = index < 2 ? 3 : 4;
+        const [anchor, neighbor, farHouse, spare] = shuffle(streetHouses);
+        const treeLeft = Math.random() < .5;
+        return {
+          kind: "street", treeLeft, anchor, anchorIndex: size === 3 || treeLeft ? 1 : 2, neighbor,
+          farHouse: size === 4 ? farHouse : undefined,
+          houses: shuffle(size === 3 ? [anchor, neighbor, spare] : [anchor, neighbor, farHouse, spare]),
+        };
+      });
   }
 }
