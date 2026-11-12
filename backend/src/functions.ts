@@ -8,6 +8,7 @@ import { AzureOcr } from './model.js';
 import { VaultKeys } from './security.js';
 import { ReviewService } from './service.js';
 import { BlobStore } from './store.js';
+import { ProfileAuth, ProgressDatabase, parseProgressConfig, progressJson, validateEvents } from './progress.js';
 
 app.setup({ enableHttpStream: true });
 const origin = process.env.PHOTO_ALLOWED_ORIGIN ?? 'https://jurajkurtulik.github.io';
@@ -21,10 +22,10 @@ function positive(name: string, fallback: number, max: number) {
   if (!Number.isSafeInteger(n) || n <= 0 || n > max) throw new ApiError(503, 'configuration_unavailable');
   return n;
 }
+const credential = process.env.WEBSITE_INSTANCE_ID ? new ManagedIdentityCredential() : new DefaultAzureCredential();
 let singleton: ReviewService | undefined;
 function service() {
   if (singleton) return singleton;
-  const credential = process.env.WEBSITE_INSTANCE_ID ? new ManagedIdentityCredential() : new DefaultAzureCredential();
   const account = new URL(required('PHOTO_STORAGE_ACCOUNT_URL'));
   const vault = new URL(required('PHOTO_KEY_VAULT_URL'));
   const endpoint = new URL(required('AZURE_OPENAI_ENDPOINT'));
@@ -99,6 +100,29 @@ app.http('health', { route: 'health', methods: ['GET', 'OPTIONS'], authLevel: 'a
     const s = service(); await s.store.ready(); await s.keys.get();
     if (!await s.store.read('quota/model.json')) throw new ApiError(503, 'not_ready');
     return { status: 200, jsonBody: { status: 'ready', contractVersion: 1 } };
+  }) });
+let progressAuth: ProfileAuth | undefined;
+function profileAuth() {
+  return progressAuth ??= new ProfileAuth(parseProgressConfig(required('PROGRESS_CONFIG')), service().store);
+}
+let progressDb: ProgressDatabase | undefined;
+function profileProgress() {
+  const server = required('PROGRESS_SQL_SERVER');
+  if (!/^[a-z0-9-]+\.database\.windows\.net$/.test(server)) throw new ApiError(503, 'configuration_unavailable');
+  return progressDb ??= new ProgressDatabase(credential, server, required('PROGRESS_SQL_DATABASE'));
+}
+app.http('profileLogin', { route: 'v1/profile/login', methods: ['POST', 'OPTIONS'], authLevel: 'anonymous',
+  handler: request => handle(request, async () => ({
+    status: 200, jsonBody: await profileAuth().login(await progressJson(request, 2048)),
+  })) });
+app.http('profileHistory', { route: 'v1/profile/progress', methods: ['GET', 'POST', 'OPTIONS'], authLevel: 'anonymous',
+  handler: request => handle(request, async () => {
+    const profile = profileAuth().profile(request.headers.get('authorization'));
+    if (request.method === 'GET') return {
+      status: 200, jsonBody: await profileProgress().read(profile, request.query.get('after') ?? ''),
+    };
+    await profileProgress().append(profile, validateEvents(await progressJson(request, 64 * 1024)));
+    return { status: 204 };
   }) });
 app.timer('cleanupReviews', { schedule: '0 */5 * * * *', runOnStartup: false, useMonitor: true,
   handler: async (_timer, context) => {

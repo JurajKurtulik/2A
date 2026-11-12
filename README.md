@@ -15,7 +15,7 @@ Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky 
 - Tři oddělené místní profily Terezka, Nelinka a Oliver. Oliver má vlastní uvítání a jezevce s batohem. Přidání Olivera zachovává historii a vybraný profil. Historie zachovává výsledek před nápovědou i po opravě.
 - Responzivní rozhraní pro počítač a mobil/tablet, ovládání klávesnicí.
 
-Pokrok se ukládá do `localStorage` pod klíčem `skola-hrou-v1`, pouze v daném prohlížeči. Bez serveru, účtů, sledování a odesílání dětských výsledků. Smazání dat webu odstraní pokrok; zařízení mezi sebou data nesdílejí. Rozpracované cvičení se zatím po obnovení stránky neobnoví.
+Každé dítě se přihlašuje ke svému profilu. Hotové výsledky se uloží nejdřív do prohlížeče a potom se synchronizují přes Azure Function do Azure SQL. Když databáze čeká na probuzení, dítě může po přihlášení hned cvičit a synchronizace se opakuje na pozadí. Po prvním přihlášení se z tohoto prohlížeče přenese i historie odpovídající původnímu profilu. Rozpracované cvičení se po obnovení stránky neobnoví.
 
 ## Jak připravit písemku
 
@@ -66,7 +66,7 @@ Pro nová témata platí minima a metodika v [CONTENT_GUIDE.md](docs/CONTENT_GUI
 
 V češtině pro 2. třídu je nová samostatná aktivita **Přepis na papír**: 50 sad po pěti větách (250 různých vět), tisk nebo uložení přes PDF tiskový dialog. Sada respektuje nedávnou historii profilu. Nový přepis se zatím nevkládá do smíšených písemek.
 
-První fáze obsahuje opakovaně použitelnou komponentu **PhotoReview**: QR propojení mobilu, přímý výběr fotky, zmenšení a odstranění EXIF, kontrolu vazby výsledku k zadání a ruční potvrzení OCR rodičem. Po potvrzení ukládá jen souhrnné skóre do místních pokroků. Fotky, přepsaný text a tokeny nezapisuje do localStorage. Uživatelé nepotřebují účet.
+Opakovaně použitelná komponenta **PhotoReview** podporuje QR propojení mobilu, přímý výběr fotky, zmenšení a odstranění EXIF, kontrolu vazby výsledku k zadání a ruční potvrzení OCR rodičem. Po potvrzení se do pokroku uloží souhrnné skóre. Fotky, přepsaný text a tokeny kontroly se neukládají do historie. Mobilní stránka pro nahrání fotky přes QR funguje bez přihlášení.
 
 **Produkční nahrávání je zatím vypnuté** v `public/photo-review-config.json`. Věty lze už přepisovat a tisknout, rodič je zatím kontroluje sám. Žádné obrázky se neodesílají ani se nevytváří falešné AI výsledky.
 

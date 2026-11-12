@@ -1,7 +1,7 @@
 import { HandwritingPractice } from "./HandwritingPractice";
 import { MobilePhotoUpload } from "./photo-review/MobilePhotoUpload";
 import { readUploadLink } from "./photo-review/contracts";
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import React, { useCallback, useLayoutEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowRight,
@@ -32,12 +32,12 @@ import {
 } from "./worksheet";
 import {
   migrateProfileNames,
-  OLIVER_PROFILE_INDEX,
   withOliverProfile,
   type Profile,
 } from "./profiles";
 import { grades, getGrade, type Grade } from "./grades";
 import { completionRecord, migrateHistory } from "./progress";
+import { ProgressError, readLogin, rememberLogin, signIn, useCloudProgress, type Login } from "./cloud-progress";
 type Data = {
   profiles: Profile[];
   active: number;
@@ -92,19 +92,20 @@ type Session = {
   done: boolean;
   checked: Record<string, boolean>;
 };
-function App() {
-  const [data, setData] = useState<Data>(readData),
-    [page, setPage] = useState("home"),
+function App({ login, logout }: { login: Login; logout: () => void }) {
+  const [legacy] = useState(() => login.profile.legacySlot === undefined
+    ? undefined : readData().profiles[login.profile.legacySlot]);
+  const { profile, update: updateProfile, storageError, sync, refresh } =
+    useCloudProgress(login, legacy, logout);
+  const [page, setPage] = useState("home"),
     [session, setSession] = useState<Session | null>(null),
     [settings, setSettings] = useState(false),
-    [storageError, setStorageError] = useState(false),
     [dragIndex, setDragIndex] = useState<number | null>(null);
   const [builder, setBuilder] = useState<BuilderOptions | null>(null),
     [lastWorksheet, setLastWorksheet] = useState<Worksheet | null>(null);
   const [handwritingDirty, setHandwritingDirty] = useState(false);
   const hasUnfinished = Boolean(session && !session.done) || handwritingDirty;
-  const profile = data.profiles[data.active];
-  const isOliver = data.active === OLIVER_PROFILE_INDEX;
+  const isOliver = login.profile.id === "oliver";
   useLayoutEffect(() => {
     document.documentElement.classList.toggle("theme-oliver", isOliver);
     return () => document.documentElement.classList.remove("theme-oliver");
@@ -118,28 +119,6 @@ function App() {
   const visibleHistory = currentHistory.filter(
     (h) => historyFilter === "all" || h.kind === historyFilter,
   );
-  useEffect(() => {
-    try {
-      localStorage.setItem("skola-hrou-v1", JSON.stringify(data));
-    } catch {
-      setStorageError(true);
-    }
-  }, []);
-  function persist(next: Data) {
-    setData(next);
-    try {
-      localStorage.setItem("skola-hrou-v1", JSON.stringify(next));
-      setStorageError(false);
-    } catch {
-      setStorageError(true);
-    }
-  }
-  function updateProfile(p: Profile) {
-    persist({
-      ...data,
-      profiles: data.profiles.map((v, i) => (i === data.active ? p : v)),
-    });
-  }
   function navigate(next: string) {
     if (
       hasUnfinished &&
@@ -149,6 +128,7 @@ function App() {
     setSession(null);
     setHandwritingDirty(false);
     setPage(next);
+    if (next === "progress") refresh();
     window.scrollTo(0, 0);
   }
   function start(ids: string[], label: string, test = false, count = 8) {
@@ -158,6 +138,7 @@ function App() {
     )
       return;
     const questions = makeSession(ids, count, profile.recent);
+    refresh();
     beginSession(questions, label, test);
   }
   function beginSession(
@@ -802,7 +783,7 @@ function App() {
             )}
           {!session && page === "handwriting" && grade === 2 && (
             <HandwritingPractice
-              key={`${data.active}-${grade}`}
+              key={`${login.profile.id}-${grade}`}
               recent={profile.recent}
               onWorkingChange={setHandwritingDirty}
               onChosen={(key) =>
@@ -1063,10 +1044,12 @@ function App() {
                 </>
               )}
               <p className="hint">
-                Přehled zachovává výsledek před nápovědou i po opravě. Pokrok je
-                uložený jen v tomto prohlížeči pro profil {profile.name}.
-                Smazáním dat prohlížeče se odstraní.
+                Přehled zachovává výsledek před nápovědou i po opravě.
               </p>
+              {sync !== "ready" && <p className="hint" role="status">
+                {sync === "loading" ? "Načítám historii profilu…" :
+                  "Čekám na synchronizaci. Můžeš dál cvičit."}
+              </p>}
             </>
           )}
           {session &&
@@ -1381,55 +1364,19 @@ function App() {
             >
               <X />
             </button>
-            <h2 id="settings-title">Kdo dnes objevuje?</h2>
-            <p>Každý má svůj pokrok v tomto prohlížeči.</p>
-            {data.profiles.map((p, i) => (
-              <button
-                type="button"
-                className={"profile-row " + (i === data.active ? "chosen" : "")}
-                key={i}
-                aria-label={`Vybrat profil ${p.name}`}
-                aria-pressed={i === data.active}
-                onClick={() => {
-                  if (i === data.active) {
-                    setSettings(false);
-                    return;
-                  }
-                  if (
-                    hasUnfinished &&
-                    !confirm(
-                      "Změnou profilu opustíš rozpracované cvičení. Pokračovat?",
-                    )
-                  )
-                    return;
-                  setSession(null);
-                  setHandwritingDirty(false);
-                  persist({ ...data, active: i });
-                  setSettings(false);
-                }}
-              >
-                <span className="profile-row-avatar" aria-hidden="true">{p.avatar}</span>
-                <span className="profile-row-name">{p.name}</span>
-                {i === data.active && <Check size={20} aria-hidden="true" />}
-              </button>
-            ))}
-            <p className="hint">
-              Profily nepotřebují účet. Výsledky zůstávají na tomto zařízení.
-            </p>
+            <h2 id="settings-title">Můj profil</h2>
+            <div className="profile-row chosen">
+              <span className="profile-row-avatar" aria-hidden="true">{profile.avatar}</span>
+              <span className="profile-row-name">{profile.name}</span>
+            </div>
             <button
               className="button light"
               onClick={() => {
-                if (
-                  confirm(
-                    `Opravdu smazat pokrok profilu ${profile.name}? Tuto akci nelze vrátit.`,
-                  )
-                ) {
-                  updateProfile({ ...profile, history: [], recent: [] });
-                  setSettings(false);
-                }
+                if (!hasUnfinished || confirm("Odhlásit se a opustit rozpracované cvičení?"))
+                  logout();
               }}
             >
-              Smazat pokrok aktivního profilu
+              Odhlásit se
             </button>
             <button
               className="button primary"
@@ -1441,6 +1388,47 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+function ProfileEntry() {
+  const [login, setLogin] = useState(readLogin);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const logout = useCallback(() => {
+    rememberLogin(null);
+    setLogin(null);
+  }, []);
+  if (login) return <App key={login.profile.id} login={login} logout={logout} />;
+  return (
+    <main className="login-page">
+      <section className="modal login-card">
+        <h1>Škola hrou</h1>
+        <p>Přihlas se do svého profilu.</p>
+        <form onSubmit={async event => {
+          event.preventDefault();
+          if (busy) return;
+          const form = new FormData(event.currentTarget);
+          setBusy(true);
+          setError("");
+          try {
+            const session = await signIn(String(form.get("username") ?? ""), String(form.get("password") ?? ""));
+            rememberLogin(session);
+            setLogin(session);
+          } catch (e) {
+            setError(e instanceof ProgressError && e.status === 401
+              ? "Jméno nebo heslo nesouhlasí."
+              : e instanceof ProgressError && e.status === 429
+                ? "Příliš mnoho pokusů. Zkus to později."
+                : "Přihlášení teď není dostupné. Zkus to za chvíli.");
+          } finally { setBusy(false); }
+        }}>
+          <label>Jméno profilu <input name="username" autoComplete="username" required maxLength={64} /></label>
+          <label>Heslo <input name="password" type="password" autoComplete="current-password" required maxLength={128} /></label>
+          {error && <p role="alert" className="feedback bad">{error}</p>}
+          <button className="button primary" disabled={busy}>{busy ? "Přihlašuji…" : "Přihlásit se"}</button>
+        </form>
+      </section>
+    </main>
   );
 }
 function Entry() {
@@ -1464,7 +1452,7 @@ function Entry() {
   return route.upload ? (
     <MobilePhotoUpload id={route.upload.id} token={route.upload.token} />
   ) : (
-    <App />
+    <ProfileEntry />
   );
 }
 createRoot(document.getElementById("root")!).render(
