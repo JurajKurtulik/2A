@@ -42,8 +42,6 @@ async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Pi
   page.drawText("Škola hrou  /  Předškolák", { x: 42, y: 799, size: 11, font: regular, color: ink });
   page.drawText(title, { x: 42, y: 765, size: 24, font: bold, color: ink });
   page.drawText(instruction, { x: 42, y: 739, size: 12, font: regular, color: ink });
-  const storyCredit = game === "story" && assetsHaveStoryCards(rounds);
-  if (storyCredit) page.drawText(storyAttribution, { x: 42, y: 21, size: 8, font: regular, color: ink });
   rounds.forEach((group, i) => {
     const top = 703 - i * 133;
     page.drawText(`${i + 1}.`, { x: 42, y: top - 21, size: 12, font: bold, color: ink });
@@ -67,11 +65,6 @@ async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Pi
     });
   });
   return pdf.save();
-}
-
-const storyAttribution = "Složené ilustrace: Twemoji © Twitter, Inc. a přispěvatelé · CC BY 4.0 · github.com/jdecked/twemoji";
-function assetsHaveStoryCards(rounds: Cell[][][]) {
-  return rounds.some(group => group.some(row => row.some(cell => cell.startsWith("story-"))));
 }
 
 async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<Picture | Graphic, Uint8Array>) {
@@ -104,8 +97,6 @@ async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<P
             ]),
           ],
         }))),
-        ...(game === "story" && assetsHaveStoryCards(rounds)
-          ? [new Paragraph({ children: [new TextRun({ text: storyAttribution, size: 15 })] })] : []),
       ],
     }],
   });
@@ -174,11 +165,6 @@ async function printSheet(game: PreschoolGame, rounds: Cell[][][], graphics: Map
     });
     page.append(rowGroup);
   });
-  if (game === "story" && assetsHaveStoryCards(rounds)) {
-    const credit = document.createElement("small");
-    credit.textContent = storyAttribution;
-    page.append(credit);
-  }
   root.append(page);
   document.body.append(root);
   try {

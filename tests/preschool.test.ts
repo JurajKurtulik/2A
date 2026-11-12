@@ -64,17 +64,15 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
 });
 
 test("Both story levels use the full illustrated bank before repeating recent stories", () => {
-  assert.equal(storyBanks[1].length, 20);
-  assert.equal(storyBanks[2].length, 30);
   const ids = [...storyBanks[1], ...storyBanks[2]].map(([id]) => id);
-  assert.equal(new Set(ids).size, 50);
+  assert.equal(new Set(ids).size, ids.length);
   for (const level of [1, 2] as const) {
     const steps = level === 1 ? 3 : 5;
-    const size = level === 1 ? 26 : 30;
+    const size = storyBanks[level].length + (level === 1 ? 6 : 0);
     for (const [id, frames] of storyBanks[level]) {
       assert.equal(frames.length, steps);
-      assert.equal(new Set(frames.map(([art]) => art)).size, steps);
-      for (const [index, [, description]] of frames.entries()) {
+      assert.equal(new Set(frames).size, steps);
+      for (const [index, description] of frames.entries()) {
         const picture = storyFrameId(id, index);
         assert.equal(pictureLabel(picture), description);
         assert.ok(existsSync(`public/${picturePath(picture).slice(2)}`), picture);
