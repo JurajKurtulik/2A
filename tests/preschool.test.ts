@@ -64,6 +64,9 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
 });
 
 test("Both story levels use the full illustrated bank before repeating recent stories", () => {
+  assert.equal(storyBanks[1].length, 20);
+  assert.equal(storyBanks[2].length, 30);
+  assert.ok(!existsSync("public/preschool/stories"), "Retired pictogram cards must not be published");
   const ids = [...storyBanks[1], ...storyBanks[2]].map(([id]) => id);
   assert.equal(new Set(ids).size, ids.length);
   for (const level of [1, 2] as const) {
