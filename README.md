@@ -1,6 +1,6 @@
 # Škola hrou
 
-Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky a češtiny je ve 2. třídě. Veřejný web: https://jurajkurtulik.github.io/skola-hrou/
+Interaktivní procvičování pro předškoláky a 1.–9. třídu. Aktuální učivo matematiky a češtiny je ve 2. třídě. Veřejný web: https://jurajkurtulik.github.io/skola-hrou/
 
 ## Co aplikace umí
 
@@ -12,7 +12,7 @@ Interaktivní procvičování pro 1.–9. třídu; aktuální učivo matematiky 
 - Doplňování čísel, výběr odpovědi, řazení kartiček klikáním i přetahováním, rozdělování slabik a opravy velkých písmen.
 - Běžné cvičení má jedno tlačítko: nejdřív Zkontrolovat s vysvětlením, potom Další úloha (na konci Vyhodnotit). Změna odpovědi znovu vyžaduje kontrolu. Písemka nabízí řešení a vysvětlení až po závěrečném vyhodnocení.
 - Vysvětlení řešení, procvičení obtížnějších témat a nové varianty.
-- Tři oddělené místní profily Terezka, Nelinka a Oliver. Oliver má vlastní uvítání a jezevce s batohem. Přidání Olivera zachovává historii a vybraný profil. Historie zachovává výsledek před nápovědou i po opravě.
+- Samostatné profily Terezka, Nelinka, Oliver a Sárinka. Oliver má vlastní uvítání a jezevce s batohem. Sárinka má jako výchozí volbu Předškolák. Historie zachovává výsledek před nápovědou i po opravě.
 - Responzivní rozhraní pro počítač a mobil/tablet, ovládání klávesnicí.
 
 Každé dítě se přihlašuje ke svému profilu. Hotové výsledky se uloží nejdřív do prohlížeče a potom se synchronizují přes Azure Function do Azure SQL. Když databáze čeká na probuzení, dítě může po přihlášení hned cvičit a synchronizace se opakuje na pozadí. Po prvním přihlášení se z tohoto prohlížeče přenese i historie odpovídající původnímu profilu. Rozpracované cvičení se po obnovení stránky neobnoví.
