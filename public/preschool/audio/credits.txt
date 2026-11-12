@@ -3,3 +3,6 @@ License: Creative Commons CC0 1.0 Universal.
 Original: https://kenney.nl/assets/interface-sounds
 WAV source: https://github.com/Calinou/kenney-interface-sounds
 License text: https://creativecommons.org/publicdomain/zero/1.0/
+
+crunch.wav — short excerpt from Raw carrot crunched #1 by Joseph Sardin (BigSoundBank), CC0 1.0.
+Original: https://bigsoundbank.com/raw-carrot-crunched-1-s1594.html

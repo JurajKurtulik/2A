@@ -1,4 +1,4 @@
-import { picturePath, shapes, type BuildRound, type MazeRound, type MoreRound, type Picture, type Shape } from "./preschool";
+import { picturePath, shapes, type BuildRound, type FeedRound, type MazeRound, type MoreRound, type Picture, type Shape } from "./preschool";
 
 export const paperGraphic = { width: 480, height: 126 };
 const ink = "#40604c";
@@ -24,7 +24,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, x: number, y: nu
   ctx.fill();
 }
 
-export async function renderPreschoolGraphic(round: BuildRound | MazeRound | MoreRound): Promise<Uint8Array> {
+export async function renderPreschoolGraphic(round: BuildRound | FeedRound | MazeRound | MoreRound): Promise<Uint8Array> {
   const canvas = document.createElement("canvas");
   const scale = 2;
   canvas.width = paperGraphic.width * scale;
@@ -34,6 +34,31 @@ export async function renderPreschoolGraphic(round: BuildRound | MazeRound | Mor
   ctx.scale(scale, scale);
   ctx.strokeStyle = ink;
   ctx.lineWidth = 1.25;
+
+  if (round.kind === "feed") {
+    const [rabbit, carrot] = await Promise.all([loadPicture("rabbit"), loadPicture("carrot")]);
+    const total = round.portions.reduce((sum, portion) => sum + portion, 0);
+    round.portions.forEach((portion, i) => {
+      const center = 240 + (i - (round.portions.length - 1) / 2) * 190;
+      ctx.drawImage(rabbit, center - 23, 1, 46, 46);
+      ctx.beginPath();
+      const serving = round.startingPortions?.[i] ?? 0;
+      ctx.roundRect(center - 66, 46, 132, serving ? 65 : 25, [3, 3, 12, 12]);
+      ctx.stroke();
+      ctx.fillStyle = ink;
+      for (let dot = 0; dot < portion; dot++) {
+        ctx.beginPath();
+        ctx.arc(center + (dot - (portion - 1) / 2) * 13, 57, 3, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      for (let index = 0; index < serving; index++) {
+        ctx.drawImage(carrot, center + (index - serving / 2) * 30, 72, 30, 30);
+      }
+    });
+    if (!round.startingPortions) {
+      for (let i = 0; i < total; i++) ctx.drawImage(carrot, 240 + (i - total / 2) * 52 + 7, 91, 38, 35);
+    }
+  }
 
   if (round.kind === "build") {
     const size = 50;

@@ -7,6 +7,7 @@ import { storyBanks, storyFrameId } from "../src/banks/preschool-stories";
 test("Preschool rounds have one solution and local illustrations and speech", () => {
   assert.ok(existsSync("public/preschool/audio/correct.wav"));
   assert.ok(existsSync("public/preschool/audio/retry.wav"));
+  assert.ok(existsSync("public/preschool/audio/crunch.wav"));
   assert.ok(existsSync("public/preschool/pictures/speaker.png"));
   assert.ok(!Object.hasOwn(pictures, "speaker"));
   for (const picture of Object.keys(pictures)) {
@@ -20,7 +21,15 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
     for (const round of rounds) {
       if (round.kind === "feed") {
         assert.equal(game, "feed");
-        assert.ok(round.count >= 1 && round.count <= 6);
+        assert.ok(round.portions.length === 1 || round.portions.length === 2);
+        assert.ok(round.portions.every(portion => portion >= 1 && portion <= 4));
+        assert.ok(round.portions.reduce((sum, portion) => sum + portion, 0) <= 6);
+        if (round.startingPortions) {
+          assert.equal(round.portions.length, 2);
+          assert.equal(round.startingPortions.length, 2);
+          assert.equal(round.startingPortions.reduce((sum, portion) => sum + portion, 0), round.portions[0] + round.portions[1]);
+          assert.ok(round.startingPortions.every((portion, i) => Math.abs(portion - round.portions[i]) === 1));
+        }
         continue;
       }
       if (round.kind === "story") {

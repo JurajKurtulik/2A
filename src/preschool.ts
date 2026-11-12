@@ -30,7 +30,7 @@ export const preschoolGames = {
   odd: { title: "Co sem nepatří?", picture: "boot", instruction: "Zakroužkuj obrázek, který mezi ostatní nepatří." },
   pattern: { title: "Co přijde dál?", picture: "leaf", instruction: "Zakroužkuj obrázek, který pokračuje v řadě." },
   pair: { title: "Najdi pár", picture: "stripes", instruction: "Zakroužkuj ponožku, která je stejná jako předloha." },
-  feed: { title: "Nakrm zajíčky", picture: "rabbit", instruction: "Spoj každého zajíčka s jednou mrkví." },
+  feed: { title: "Zaječí hostina", picture: "rabbit", instruction: "Podle teček spoj mrkve s miskami. Šipkou vyznač, kterou přesuneš." },
   story: { title: "Co bylo nejdřív?", picture: "butterfly", instruction: "Očísluj obrázky podle toho, jak se příběh stal." },
   build: { title: "Postav podle obrázku", picture: "build", instruction: "Překresli tvary do prázdných políček podle vzoru." },
   maze: { title: "Doveď kočku domů", picture: "house", instruction: "Nakresli kočce cestu k domečku po volných políčkách." },
@@ -41,7 +41,7 @@ export const preschoolGameIds = Object.keys(preschoolGames) as PreschoolGame[];
 export const preschoolTopic = (game: PreschoolGame) => `preschool-${game}`;
 
 type ChoiceRound = { kind: "choice"; prompt: Picture[]; options: Picture[]; answer: Picture };
-type FeedRound = { kind: "feed"; count: number };
+export type FeedRound = { kind: "feed"; portions: readonly number[]; startingPortions?: readonly number[] };
 export type StoryRound = { kind: "story"; storyId: string; order: Picture[]; options: Picture[] };
 export const shapes = {
   circle: { label: "kruh", color: "#e18d31" },
@@ -140,7 +140,16 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         options: shuffle([answer, ...shuffle(socks.filter(sock => sock !== answer)).slice(0, 2)]), answer,
       }));
     case "feed":
-      return [1, 2, 3, 4, shuffle([5, 6])[0]].map(count => ({ kind: "feed", count }));
+      return [
+        { kind: "feed", portions: [shuffle([2, 3])[0]] },
+        { kind: "feed", portions: shuffle([1, 2]) },
+        { kind: "feed", portions: shuffle([2, 3]) },
+        ...[shuffle([1, 4]), shuffle([2, 4])].map(portions => ({
+          kind: "feed" as const,
+          portions,
+          startingPortions: [portions[0] - Math.sign(portions[0] - portions[1]), portions[1] + Math.sign(portions[0] - portions[1])],
+        })),
+      ];
     case "story":
       return storyRounds(level, recentStories);
     case "build":
