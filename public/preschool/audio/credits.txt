@@ -1,0 +1,5 @@
+correct.wav — Confirmation 002 by Kenney, Interface Sounds (2020).
+License: Creative Commons CC0 1.0 Universal.
+Original: https://kenney.nl/assets/interface-sounds
+WAV source: https://github.com/Calinou/kenney-interface-sounds
+License text: https://creativecommons.org/publicdomain/zero/1.0/

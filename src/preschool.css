@@ -31,13 +31,6 @@
 .preschool-steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .preschool-steps li { width: 12px; height: 12px; border: 2px solid #b8cabb; border-radius: 50%; }
 .preschool-steps li.reached { background: #438461; border-color: #438461; }
-.preschool-example {
-  display: flex; align-items: center; gap: 3px; padding: 4px 8px; border-radius: 12px;
-  background: #eef4e8; color: #36714f;
-}
-.preschool-example img { width: clamp(24px, 6vw, 35px); height: clamp(24px, 6vw, 35px); object-fit: contain; }
-.preschool-example svg { width: 15px; height: 15px; flex: none; }
-.preschool-example span { display: flex; align-items: center; border: 1px solid #83ac8d; border-radius: 8px; }
 .preschool-prompt, .preschool-choices { display: flex; justify-content: center; align-items: center; gap: clamp(5px, 2vw, 15px); width: 100%; }
 .preschool-prompt img, .preschool-missing { width: min(8.5%, 68px); min-width: 0; aspect-ratio: 1; object-fit: contain; }
 .preschool-prompt.pair img { width: clamp(76px, 16vw, 124px); }

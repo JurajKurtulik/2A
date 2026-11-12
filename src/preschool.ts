@@ -3,7 +3,11 @@ export const pictures = {
   cat: "kočka", dog: "pejsek", rabbit: "zajíček", carrot: "mrkev",
   leaf: "list", acorn: "žalud", mushroom: "houba", flower: "květina",
   stripes: "pruhovaná ponožka", dots: "puntíkovaná ponožka", stars: "ponožka s hvězdičkami",
-  speaker: "reproduktor",
+  strawberry: "jahoda", orange: "pomeranč", plum: "švestka", pineapple: "ananas",
+  sheep: "ovečka", cow: "kravička", pig: "prasátko", horse: "koník",
+  car: "autíčko", bus: "autobus", train: "vláček", bike: "jízdní kolo",
+  zigzags: "ponožka s cikcaky", hearts: "ponožka se srdíčky",
+  diamonds: "ponožka s kosočtverci", bands: "oranžová ponožka s bílými pruhy",
 } as const;
 export type Picture = keyof typeof pictures;
 export const picturePath = (picture: Picture) => `./preschool/pictures/${picture}.png`;
@@ -31,22 +35,28 @@ function shuffle<T>(values: readonly T[]): T[] {
   return shuffled;
 }
 
+const fruit: Picture[] = ["apple", "pear", "banana", "strawberry", "orange", "plum", "pineapple"];
+const animals: Picture[] = ["cat", "dog", "rabbit", "sheep", "cow", "pig", "horse"];
+const vehicles: Picture[] = ["car", "bus", "train", "bike"];
+const socks: Picture[] = ["stripes", "dots", "stars", "zigzags", "hearts", "diamonds", "bands"];
+const nature: Picture[] = ["carrot", "leaf", "acorn", "mushroom", "flower"];
 const oddGroups: { family: Picture[]; outsiders: Picture[] }[] = [
-  { family: ["apple", "pear", "banana"], outsiders: ["boot", "cat", "stripes", "speaker"] },
-  { family: ["cat", "dog", "rabbit"], outsiders: ["carrot", "acorn", "leaf", "mushroom"] },
-  { family: ["stripes", "dots", "stars"], outsiders: ["flower", "banana", "rabbit", "pear"] },
+  { family: fruit, outsiders: ["boot", ...animals, ...vehicles, ...socks] },
+  { family: animals, outsiders: [...fruit, ...nature, ...vehicles] },
+  { family: vehicles, outsiders: [...fruit, ...animals, ...socks] },
+  { family: socks, outsiders: [...fruit, ...animals, ...vehicles, ...nature] },
 ];
-const patternPictures: Picture[] = ["leaf", "acorn", "mushroom", "flower", "apple", "carrot"];
-const socks: Picture[] = ["stripes", "dots", "stars"];
+const patternPictures = [...fruit, ...animals, ...vehicles, ...socks, ...nature, "boot"] as const;
 
 export function preschoolRounds(game: PreschoolGame): PreschoolRound[] {
   switch (game) {
-    case "odd":
-      return shuffle(oddGroups.flatMap(({ family, outsiders }) =>
-        outsiders.map(answer => ({
-          kind: "choice" as const, prompt: [], options: shuffle([...family, answer]), answer,
-        })),
-      )).slice(0, 5);
+    case "odd": {
+      const groups = shuffle(oddGroups);
+      return [...groups, groups[0]].map(({ family, outsiders }) => {
+        const [answer] = shuffle(outsiders);
+        return { kind: "choice", prompt: [], options: shuffle([...shuffle(family).slice(0, 3), answer]), answer };
+      });
+    }
     case "pattern":
       return Array.from({ length: 5 }, (_, index) => {
         const [first, second, third] = shuffle(patternPictures);
@@ -57,8 +67,9 @@ export function preschoolRounds(game: PreschoolGame): PreschoolRound[] {
         };
       });
     case "pair":
-      return [...shuffle(socks), ...shuffle(socks).slice(0, 2)].map(answer => ({
-        kind: "choice" as const, prompt: [answer], options: shuffle(socks), answer,
+      return shuffle(socks).slice(0, 5).map(answer => ({
+        kind: "choice" as const, prompt: [answer],
+        options: shuffle([answer, ...shuffle(socks.filter(sock => sock !== answer)).slice(0, 2)]), answer,
       }));
     case "feed":
       return [1, 2, 3, 4, shuffle([5, 6])[0]].map(count => ({ kind: "feed", count }));
