@@ -17,7 +17,8 @@
   background: #f8f9f5;
   font-synthesis: none;
   font-weight: 400;
-  --green: #346b50;
+  --action: #346b50;
+  --action-hover: #28563e;
   --muted: #7c8981;
   --line: #e8ece4;
   --orange: #e89b56;
@@ -348,11 +349,11 @@ h1 em {
   text-decoration: none;
 }
 .primary {
-  background: var(--green);
+  background: var(--action);
   color: #fff;
 }
 .primary:hover {
-  background: #28563e;
+  background: var(--action-hover);
   box-shadow: 0 4px 10px #346b5019;
 }
 .light {
@@ -387,8 +388,6 @@ h1 em {
 .hero-oliver p,
 .hero-oliver .hero-note,
 .hero-oliver .mascot-label { color: #405d75; }
-.hero-oliver .primary { background: #285f88; }
-.hero-oliver .primary:hover { background: #1f4c70; }
 .badger {
   position: absolute;
   width: 155px;
@@ -1346,19 +1345,26 @@ footer {
 }
 .profile-row {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 15px;
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px;
   margin: 15px 0;
+  background: transparent;
+  text-align: left;
+}
+.profile-row:hover {
+  background: #f5f7ef;
 }
 .profile-row.chosen {
   background: #f1f5e8;
   border-color: #a5bb8a;
 }
-.avatar-select {
-  border: 0;
+.profile-row-avatar {
+  display: grid;
+  place-items: center;
   background: #f0ead9;
   font-size: 32px;
   width: 50px;
@@ -1366,20 +1372,12 @@ footer {
   border-radius: 50%;
   flex: none;
 }
-.profile-row label {
-  font-size: 10px;
-  color: #92a184;
+.profile-row-name {
+  flex: 1;
   min-width: 0;
-}
-.profile-row input {
-  display: block;
-  border: 0;
-  background: none;
-  max-width: 100%;
-  width: 100%;
   font-size: 14px;
-  color: #4f6948;
-  padding: 7px 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 .modal > .button {
   margin-top: 12px;
@@ -2410,6 +2408,67 @@ footer {
 }
 .button.check-answer:hover {
   background: #d8e7cf;
+}
+
+.theme-oliver {
+  color: #253d55;
+  background: #f5f8fc;
+  --action: #285f88;
+  --action-hover: #1f4c70;
+  --line: #dce7f0;
+  --muted: #526b82;
+  --blue-light: #eef5fb;
+  --blue-selected: #deedf9;
+  --blue-border: #b5cde2;
+}
+.theme-oliver :is(.sidebar, .topbar) {
+  background: #fbfdff;
+}
+.theme-oliver :is(.nav-item, .settings-link, .workspace-label, .breadcrumb strong) {
+  color: var(--muted);
+}
+.theme-oliver :is(.nav-item:hover, .light:hover, .profile-row:hover, .choice:hover, .word:hover) {
+  background: var(--blue-light);
+}
+.theme-oliver :is(.brand-icon, .nav-item.active, .profile-button > span:first-child, .profile-row-avatar) {
+  background: var(--blue-selected);
+  color: var(--action-hover);
+}
+.theme-oliver :is(.nav-dot, .builder-steps .current b, .progress-track > span) {
+  background: var(--action);
+}
+.theme-oliver :is(button, input, select):focus-visible {
+  outline-color: var(--action);
+}
+.theme-oliver :is(.grade-picker select, .pill, .number-input, .word, .split, .order-target, .preview-controls) {
+  background: var(--blue-light);
+  border-color: var(--blue-border);
+  color: var(--action-hover);
+}
+.theme-oliver .pill > span {
+  background: var(--action);
+}
+.theme-oliver :is(.profile-row.chosen, .button.check-answer, .choice.selected, .split.active, .history-filters [aria-pressed="true"], .builder-topic.chosen, .mode-options button.selected) {
+  background: var(--blue-selected);
+  border-color: var(--blue-border);
+  color: var(--action-hover);
+}
+.theme-oliver :is(.button.check-answer:hover, .question-dots .answered, .placed) {
+  background: #cbdff2;
+}
+.theme-oliver .question-dots .current {
+  background: var(--action);
+  border-color: var(--action);
+}
+.theme-oliver :is(.result-score, .progress-track) {
+  background: var(--blue-light);
+  border-color: var(--blue-border);
+}
+.theme-oliver :is(.result-score strong, .builder-steps .current, .mode-options strong, .selection-shortcuts button) {
+  color: var(--action-hover);
+}
+.theme-oliver :is(.topic-checkbox input, .preview-controls input) {
+  accent-color: var(--action);
 }
 /* Shared photo review widget; no model credentials or photo persistence in the browser. */
 .handwriting-card {
