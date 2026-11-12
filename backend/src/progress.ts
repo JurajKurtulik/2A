@@ -34,7 +34,7 @@ export function validateEvents(value: unknown): Event[] {
     if (typeof id !== 'string' || !eventPattern.test(id) ||
       !shortText(e.date, 35) || !Number.isFinite(Date.parse(e.date)) ||
       !shortText(e.label, 200) || !['practice', 'test'].includes(String(e.kind)) ||
-      !count(e.grade, 1, 9) || !count(e.total, 1, 120) || !count(e.score, 0, e.total) ||
+      !count(e.grade, 0, 9) || !count(e.total, 1, 120) || !count(e.score, 0, e.total) ||
       (e.correctedScore !== undefined && !count(e.correctedScore, 0, e.total)) ||
       (e.variant !== undefined && !shortText(e.variant, 64)) ||
       !Array.isArray(e.topics) || e.topics.length > 30)

@@ -1,4 +1,6 @@
 import { HandwritingPractice } from "./HandwritingPractice";
+import { PreschoolGames } from "./PreschoolGames";
+import { preschoolGames, preschoolTopic } from "./preschool";
 import { MobilePhotoUpload } from "./photo-review/MobilePhotoUpload";
 import { readUploadLink } from "./photo-review/contracts";
 import React, { useCallback, useLayoutEffect, useState } from "react";
@@ -111,6 +113,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
     return () => document.documentElement.classList.remove("theme-oliver");
   }, [isOliver]);
   const grade = getGrade(profile.grade ?? (login.profile.id === "sarinka" ? PRESCHOOL_GRADE : undefined));
+  const isPreschool = grade === PRESCHOOL_GRADE;
   const currentTopics = topicsForGrade(grade);
   const currentHistory = profile.history.filter((h) => h.grade === grade);
   const [historyFilter, setHistoryFilter] = useState<
@@ -506,7 +509,9 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
     setHandwritingDirty(false);
     setBuilder(null);
     setHistoryFilter("all");
-    updateProfile({ ...profile, grade: getGrade(Number(value)) });
+    const nextGrade = getGrade(Number(value));
+    if (nextGrade === PRESCHOOL_GRADE) setPage("home");
+    updateProfile({ ...profile, grade: nextGrade });
   }
   function gradeSelect(id: string) {
     return (
@@ -541,13 +546,13 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
       </section>
     );
   }
-  const nav = [
+  const nav = ([
     ["home", "Doma", Home],
     ["math", "Matematika", Calculator],
     ["czech", "Čeština", BookOpen],
     ["tests", "Zkus si písemku", Sparkles],
     ["progress", "Moje pokroky", Trophy],
-  ] as const;
+  ] as const).filter(([id]) => !isPreschool || id === "home" || id === "progress");
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -624,7 +629,17 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
               po zavření nezůstane uložený.
             </div>
           )}
-          {!session &&
+          {isPreschool && page === "home" && (
+            <PreschoolGames onComplete={(game, score, total) => updateProfile({
+              ...profile,
+              history: [{
+                date: new Date().toISOString(), label: preschoolGames[game].title,
+                kind: "practice", grade: PRESCHOOL_GRADE, score, total,
+                topics: [{ id: preschoolTopic(game), right: score, total }],
+              }, ...profile.history],
+            })} />
+          )}
+          {!isPreschool && !session &&
             !currentTopics.length &&
             page !== "progress" &&
             emptyGrade()}
@@ -954,14 +969,14 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
                   </p>
                   <button
                     className="button primary"
-                    onClick={() => navigate("math")}
+                    onClick={() => navigate(isPreschool ? "home" : "math")}
                   >
                     Začít objevovat <ArrowRight size={17} />
                   </button>
                 </div>
               ) : (
                 <>
-                  <h2>Co ještě procvičit?</h2>
+                  {!isPreschool && <h2>Co ještě procvičit?</h2>}
                   <div className="review-topics">
                     {currentTopics
                       .filter((t) =>
@@ -982,7 +997,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
                         </button>
                       ))}
                   </div>
-                  <h2>Poslední dobrodružství · {grade}. třída</h2>
+                  <h2>Poslední dobrodružství · {gradeLabel(grade)}</h2>
                   <div
                     className="history-filters"
                     aria-label="Druh dokončené aktivity"
@@ -1025,7 +1040,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
                           <strong>{h.label}</strong>
                           <small>
                             {h.kind === "test" ? "Písemka" : "Cvičení"} ·{" "}
-                            {h.grade}. třída ·{" "}
+                            {gradeLabel(h.grade)} ·{" "}
                             {new Date(h.date).toLocaleDateString("cs-CZ")}
                           </small>
                         </span>

@@ -34,5 +34,6 @@ test('Progress validation keeps only score metadata and rejects malformed counts
   const id = 'a'.repeat(64);
   const clean = validateEvents({ events: [{ id, entry }] })[0].entry;
   assert.equal(Object.hasOwn(clean as object, 'answer'), false);
+  assert.equal((validateEvents({ events: [{ id, entry: { ...entry, grade: 0 } }] })[0].entry as { grade: number }).grade, 0);
   assert.throws(() => validateEvents({ events: [{ id, entry: { ...entry, score: 3 } }] }), { status: 400 });
 });
