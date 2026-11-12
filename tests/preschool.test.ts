@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { directions, mazeStep, pictures, preschoolGameIds, preschoolRounds, type Direction } from "../src/preschool";
+import { directions, mazeStep, pictureLabel, picturePath, pictures, preschoolGameIds, preschoolRounds, type Direction } from "../src/preschool";
+import { storyBanks, storyFrameId } from "../src/banks/preschool-stories";
 
 test("Preschool rounds have one solution and local illustrations and speech", () => {
   assert.ok(existsSync("public/preschool/audio/correct.wav"));
@@ -59,5 +60,42 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
         assert.equal(unit[0], round.answer);
       }
     }
+  }
+});
+
+test("Both story levels use the full illustrated bank before repeating recent stories", () => {
+  assert.equal(storyBanks[1].length, 20);
+  assert.equal(storyBanks[2].length, 30);
+  const ids = [...storyBanks[1], ...storyBanks[2]].map(([id]) => id);
+  assert.equal(new Set(ids).size, 50);
+  for (const level of [1, 2] as const) {
+    const steps = level === 1 ? 3 : 5;
+    const size = level === 1 ? 26 : 30;
+    for (const [id, frames] of storyBanks[level]) {
+      assert.equal(frames.length, steps);
+      assert.equal(new Set(frames.map(([art]) => art)).size, steps);
+      for (const [index, [, description]] of frames.entries()) {
+        const picture = storyFrameId(id, index);
+        assert.equal(pictureLabel(picture), description);
+        assert.ok(existsSync(`public/${picturePath(picture).slice(2)}`), picture);
+      }
+    }
+    let recent: string[] = [];
+    const seen = new Set<string>();
+    while (seen.size < size) {
+      const rounds = preschoolRounds("story", level, recent);
+      const session: string[] = [];
+      for (const round of rounds) {
+        if (round.kind !== "story") assert.fail("Expected story round");
+        assert.equal(round.options.length, steps);
+        assert.equal(new Set(round.options).size, steps);
+        assert.deepEqual([...round.options].sort(), [...round.order].sort());
+        if (seen.size < size) assert.ok(!seen.has(round.storyId), round.storyId);
+        seen.add(round.storyId);
+        session.push(round.storyId);
+      }
+      recent = [...new Set([...session, ...recent])];
+    }
+    assert.equal(seen.size, size);
   }
 });

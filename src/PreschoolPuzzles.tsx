@@ -1,12 +1,12 @@
 import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check } from "lucide-react";
 import {
-  mazeStep, picturePath, pictures, shapes,
+  mazeStep, picturePath, pictureLabel, shapes,
   type BuildRound, type Direction, type MazeRound, type MoreRound, type Picture, type Shape, type StoryRound,
 } from "./preschool";
 
 export function PictureCard({ picture }: { picture: Picture }) {
-  return <img src={picturePath(picture)} alt={pictures[picture]} draggable={false} />;
+  return <img src={picturePath(picture)} alt={pictureLabel(picture)} draggable={false} />;
 }
 
 export function ShapePiece({ shape }: { shape: Shape }) {
@@ -18,13 +18,14 @@ type Feedback = { solved: boolean; onCorrect: () => void; onWrong: () => void };
 export function StoryPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { round: StoryRound }) {
   const [placed, setPlaced] = useState<Picture[]>([]);
   const [mistake, setMistake] = useState<Picture | null>(null);
+  const gridStyle = { "--puzzle-columns": round.order.length } as CSSProperties;
   return <>
-    <div className="preschool-story-slots" aria-label="Pořadí příběhu">
+    <div className="preschool-story-slots" style={gridStyle} aria-label="Pořadí příběhu">
       {round.order.map((_, index) => <span key={index}>
         {placed[index] ? <PictureCard picture={placed[index]} /> : <small aria-hidden="true">{index + 1}</small>}
       </span>)}
     </div>
-    <div className="preschool-choices">
+    <div className="preschool-choices preschool-story-choices" style={gridStyle}>
       {round.options.map(picture => <button type="button" key={picture}
         disabled={solved || placed.includes(picture)}
         className={placed.includes(picture) ? "correct" : mistake === picture ? "incorrect" : ""}

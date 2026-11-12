@@ -5,6 +5,7 @@ Interaktivní procvičování pro předškoláky a 1.–9. třídu. Aktuální u
 ## Co aplikace umí
 
 - Osm pětikolových obrázkových her pro předškoláky. Děti třídí obrázky, doplňují vzory, párují ponožky, krmí zajíčky, řadí příběhy, staví podle vzoru, vedou kočku bludištěm a porovnávají množství. Český pokyn zazní při spuštění hry a lze ho zopakovat reproduktorem. Správnou odpověď doprovází cinknutí a chybu krátké povzbuzení. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
+- Hra **Co bylo nejdřív?** nabízí 26 příběhů se třemi obrázky a 30 příběhů s pěti obrázky. V rámci profilu na stejném zařízení vybírá nejdřív dosud nepoužité příběhy. Nové obrazové karty jsou složené z [grafiky Twemoji](https://github.com/jdecked/twemoji) pod licencí [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - 11 matematických a 9 jazykových okruhů pro 2. třídu.
 - Krátká cvičení po osmi úlohách a krátké i delší cvičné písemky.
 - Vlastní sestavení písemky: výběr témat, 1 až 20 příkladů z každého tématu a nejvýše 120 příkladů celkem. Krátká a delší varianta slouží jako upravitelné předvolby.
