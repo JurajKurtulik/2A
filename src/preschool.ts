@@ -22,7 +22,7 @@ type GamePicture = keyof typeof pictures;
 type StoryPicture = ReturnType<typeof storyFrameId>;
 export type Picture = GamePicture | StoryPicture;
 export const picturePath = (picture: Picture) =>
-  `./preschool/${picture.startsWith("story-") ? "stories" : "pictures"}/${picture}.png`;
+  `./preschool/${picture.startsWith("story-") ? "story-scenes" : "pictures"}/${picture}.png`;
 export const pictureLabel = (picture: Picture) =>
   Object.hasOwn(pictures, picture) ? pictures[picture as GamePicture] : storyFrameLabels[picture];
 

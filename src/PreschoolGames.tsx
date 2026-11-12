@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, Check, RotateCcw, Star } from "lucide-react";
-import type { StoryLevel } from "./banks/preschool-stories";
+import { storyBanks, type StoryLevel } from "./banks/preschool-stories";
 import {
   preschoolGameIds, preschoolGames, preschoolRounds,
   type PreschoolGame, type PreschoolRound,
@@ -114,7 +114,7 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
         <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Co bylo nejdřív?</h1>
       </header>
       <div className="preschool-levels" aria-label="Vyber úroveň">
-        {([1, 2] as const).map(level => {
+        {([1, 2] as const).filter(level => level === 1 || storyBanks[level].length > 0).map(level => {
           const count = level === 1 ? 3 : 5;
           return <button key={level} type="button" className={`preschool-game level-${level}`} onClick={() => start("story", level)}>
             <span className="preschool-level-cards" aria-hidden="true">
@@ -132,7 +132,7 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
       <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Obrázkové hry</h1>
       <div className="preschool-games">
         {preschoolGameIds.map(id => (
-          <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => id === "story" ? setChooseStory(true) : start(id)}>
+          <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => id === "story" && storyBanks[2].length > 0 ? setChooseStory(true) : start(id)}>
             {preschoolGames[id].picture === "build" ? (
               <span className="preschool-build-icon" aria-hidden="true">
                 <ShapePiece shape="circle" /><ShapePiece shape="square" /><ShapePiece shape="triangle" />
@@ -157,7 +157,7 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
   return (
     <section className="preschool-play" aria-label={game.title}>
       <header className="preschool-toolbar">
-        <button type="button" className="preschool-back" onClick={back} aria-label={play.game === "story" ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
+        <button type="button" className="preschool-back" onClick={back} aria-label={chooseStory ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
         <h1>{game.title}</h1>
         {!play.finished && <button type="button" className="preschool-speaker" ref={element => { transition.current = element; }}
           aria-label="Přehrát pokyn znovu" onClick={() => playSound(play.game)}>
@@ -248,7 +248,6 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
           {["PDF", "Word", "Tisk"][index]}
         </button>)}
         {exportError && <p role="alert">Pracovní list se nepodařilo připravit.</p>}
-        {play.game === "story" && <p><small><a href="./preschool/stories/credits.txt">Licence příběhových ilustrací</a></small></p>}
       </details>
     </section>
   );
