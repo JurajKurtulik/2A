@@ -3,7 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "main": "dist/functions.js",
-  "engines": { "node": ">=24 <25" },
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "tsx --test tests/*.test.ts",
@@ -16,7 +18,8 @@
     "@azure/identity": "^4.10.0",
     "@azure/keyvault-secrets": "^4.9.0",
     "@azure/storage-blob": "^12.27.0",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "tedious": "20.3.8"
   },
   "devDependencies": {
     "@azure/core-rest-pipeline": "^1.22.0",
