@@ -1,4 +1,5 @@
-import { picturePath, shapes, type BuildRound, type FeedRound, type MazeRound, type MoreRound, type Picture, type Shape } from "./preschool";
+import { picturePath, shapes, type GraphicRound, type Picture, type Shape } from "./preschool";
+import { drawNumberRound } from "./preschool-number-paper";
 
 export const paperGraphic = { width: 480, height: 126 };
 const ink = "#40604c";
@@ -24,7 +25,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, x: number, y: nu
   ctx.fill();
 }
 
-export async function renderPreschoolGraphic(round: BuildRound | FeedRound | MazeRound | MoreRound): Promise<Uint8Array> {
+export async function renderPreschoolGraphic(round: GraphicRound): Promise<Uint8Array> {
   const canvas = document.createElement("canvas");
   const scale = 2;
   canvas.width = paperGraphic.width * scale;
@@ -34,6 +35,10 @@ export async function renderPreschoolGraphic(round: BuildRound | FeedRound | Maz
   ctx.scale(scale, scale);
   ctx.strokeStyle = ink;
   ctx.lineWidth = 1.25;
+
+  if (round.kind === "trip" || round.kind === "balance" || round.kind === "door" || round.kind === "street") {
+    await drawNumberRound(ctx, round, loadPicture);
+  }
 
   if (round.kind === "feed") {
     const [rabbit, carrot] = await Promise.all([loadPicture("rabbit"), loadPicture("carrot")]);

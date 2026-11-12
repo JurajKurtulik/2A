@@ -14,6 +14,10 @@
 .preschool-game.build { background: #e9effc; border-color: #d2def5; }
 .preschool-game.maze { background: #e4f3e9; border-color: #cfe4d5; }
 .preschool-game.more { background: #fce7ed; border-color: #efd2db; }
+.preschool-game.trip { background: #fff0cb; border-color: #eddbad; }
+.preschool-game.balance { background: #e1f1f3; border-color: #c9e2e6; }
+.preschool-game.door { background: #fae7f2; border-color: #efd1e3; }
+.preschool-game.street { background: #e9efdd; border-color: #dae3c8; }
 .preschool-levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 620px; }
 .preschool-levels .level-1 { background: #e8f4dc; border-color: #c9dfbf; }
 .preschool-levels .level-2 { background: #f4eafe; border-color: #dfcfef; }
@@ -92,6 +96,88 @@
 .feed-drag { position: fixed; z-index: 20; width: 52px; height: 52px; transform: translate(-50%, -50%); pointer-events: none; }
 .feed-bell { display: grid; place-items: center; width: 70px; height: 52px; border: 2px solid #e0b157; border-radius: 18px; background: #ffda77; color: #623b12; cursor: pointer; }
 .feed-bell svg { width: 29px; height: 29px; }
+.feed-bell:disabled { opacity: .42; cursor: default; }
+.new-puzzle { display: grid; justify-items: center; gap: 14px; width: min(100%, 500px); }
+.puzzle-choice-row { display: flex; justify-content: center; gap: clamp(4px, 2vw, 12px); width: 100%; }
+.puzzle-choice-row button, .street-slot {
+  display: grid; place-items: center; padding: 4px; position: relative; min-width: 0;
+  border: 2px solid #d5dec9; background: #fff; border-radius: 13px; cursor: pointer;
+}
+.puzzle-choice-row button { width: clamp(48px, 17vw, 94px); aspect-ratio: 1; }
+.puzzle-choice-row button[aria-pressed="true"], .street-slot[aria-pressed="true"], .balance-apple[aria-pressed="true"] {
+  background: #fff2bf; border-color: #a56d17;
+}
+.puzzle-choice-row button:disabled, .street-slot:disabled { cursor: default; }
+.number-dots { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 2px; width: clamp(27px, 7vw, 42px); aspect-ratio: 1; }
+.number-dots i { background: #365b49; border-radius: 50%; }
+.trip-vehicle { display: grid; position: relative; width: min(100%, 330px); }
+.trip-vehicle > img { width: 100%; height: auto; }
+.trip-seats, .trip-stop > div { display: flex; gap: 4px; justify-content: center; }
+.trip-seats {
+  position: absolute; z-index: 1; top: 15%; left: 16%; right: 4%; height: 35%;
+  padding: 1px; background: #5d471f; border-radius: 8px;
+}
+.trip-rider, .trip-seat-empty {
+  display: grid; place-items: center; position: relative; width: clamp(35px, 12vw, 57px);
+  height: clamp(43px, 13vw, 63px); padding: 4px; background: #fff; border: 1px solid #bdcdbb; border-radius: 9px;
+}
+.trip-seat-empty { background: #fff9e1; border-style: dashed; }
+.trip-seats .trip-rider, .trip-seats .trip-seat-empty { width: 20%; height: 100%; background: #dbf3fb; border-color: #9dbecb; }
+button.trip-rider { cursor: pointer; }
+.trip-rider img { width: 100%; height: 100%; object-fit: contain; }
+.trip-rider svg { position: absolute; right: -2px; bottom: -2px; width: 21px; height: 21px; padding: 2px; background: #286749; color: #fff; border-radius: 50%; }
+.trip-stop { display: flex; gap: 8px; width: 100%; justify-content: center; }
+.trip-stop > div { min-height: 52px; min-width: 54px; padding: 4px; border: 1px dashed #9cb9a7; border-radius: 12px; background: #edf6e8; }
+.trip-stop > div + div { background: #f3eee4; border-color: #c7b899; }
+.trip-puzzle .puzzle-choice-row button:disabled:not([aria-pressed="true"]) { opacity: .48; }
+.balance-machine {
+  width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 13%;
+  position: relative; padding-block: 16px 30px; isolation: isolate;
+}
+.balance-beam, .balance-stand { position: absolute; background: #ae7040; z-index: -1; }
+.balance-beam { left: 17%; right: 17%; bottom: 33px; height: 9px; border-radius: 10px; transform: rotate(var(--tilt)); transition: transform .2s ease; }
+.balance-stand { width: 45px; height: 43px; bottom: 5px; left: calc(50% - 22px); background: #cc945b; clip-path: polygon(50% 0%, 62% 0, 67% 78%, 100% 86%, 100% 100%, 0 100%, 0 86%, 33% 78%, 38% 0); }
+.balance-pan {
+  display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 2px;
+  min-height: 80px; padding: 5px; border: 2px solid #8cb1ba; border-radius: 12px 12px 32px 32px;
+  background: #e1f2f6; position: relative; isolation: isolate; transition: transform .2s ease;
+  transform: translateY(calc(var(--travel) * -1));
+}
+.balance-pan:last-child { transform: translateY(var(--travel)); }
+.puzzle-drop-target { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; border-radius: inherit; cursor: pointer; }
+.balance-apple {
+  position: relative; display: grid; place-items: center; padding: 2px; width: clamp(30px, 8vw, 48px);
+  height: 40px; border: 2px solid transparent; border-radius: 10px; background: #fffaf1; cursor: pointer;
+}
+.balance-apple img { width: 100%; height: 100%; object-fit: contain; }
+.door-clue { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border: 2px solid #ddc59e; border-radius: 14px; background: #fff2db; }
+.door-sign { display: flex; align-items: center; gap: 8px; }
+.door-sign > img { width: 62px; aspect-ratio: 1; object-fit: contain; }
+.pattern-swatch { display: block; width: 40px; aspect-ratio: 1; border: 1px solid #806a50; border-radius: 9px; background-color: var(--patch); }
+.pattern-swatch.dots, .pattern-swatch.stripes, .pattern-swatch.checker { background-color: #fff7df; }
+.pattern-swatch.dots { background-image: radial-gradient(circle, var(--patch) 31%, transparent 34%); background-size: 11px 11px; background-position: center; }
+.pattern-swatch.stripes { background-image: repeating-linear-gradient(-42deg, var(--patch) 0 4px, transparent 4px 8px); }
+.pattern-swatch.checker { background-image: conic-gradient(var(--patch) 25%, transparent 0 50%, var(--patch) 0 75%, transparent 0); background-size: 12px 12px; }
+.bear-options button > img, .street-houses img, .street-slot img { width: 100%; height: 100%; object-fit: contain; }
+.bear-options .pattern-swatch { position: absolute; bottom: 10%; width: 36%; border-radius: 50%; }
+.street-clues { display: flex; justify-content: center; gap: 5px; width: 100%; }
+.street-clue {
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  padding: 5px; border: 1px solid #e1c599; border-radius: 10px; background: #fff2d9;
+}
+.street-clue img { width: clamp(19px, 5vw, 34px); aspect-ratio: 1; object-fit: contain; }
+.street-clue svg { width: clamp(13px, 4vw, 23px); color: #375f4b; }
+.street-mini { display: flex; gap: 2px; }
+.street-mini i { width: clamp(7px, 1.7vw, 12px); aspect-ratio: 1; border: 1px solid #657767; border-radius: 2px; background: #fff; }
+.street-mini i.marked { background: #48775c; }
+.street-track { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; }
+.street-slot { width: clamp(43px, 14vw, 85px); aspect-ratio: 1; border-style: dashed; background: #eff6e8; }
+.street-tree { display: grid; place-items: center; width: clamp(31px, 10vw, 58px); }
+.street-tree img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+.street-houses button:disabled { opacity: .28; }
+@media (prefers-reduced-motion: reduce) {
+  .balance-beam, .balance-pan { transition: none; }
+}
 @media (prefers-reduced-motion: no-preference) {
   .feed-bowl[data-result="served"]::after { animation: feed-served .28s ease-out; }
   .feed-rabbit:has([data-result="served"]) .feed-target img { animation: feed-nibble .18s ease-in-out 3 alternate; }

@@ -4,7 +4,8 @@ Interaktivní procvičování pro předškoláky a 1.–9. třídu. Aktuální u
 
 ## Co aplikace umí
 
-- Osm pětikolových obrázkových her pro předškoláky. Děti třídí obrázky, doplňují vzory, párují ponožky, krmí zajíčky, řadí příběhy, staví podle vzoru, vedou kočku bludištěm a porovnávají množství. Český pokyn zazní při spuštění hry a lze ho zopakovat reproduktorem. Správnou odpověď doprovází cinknutí a chybu krátké povzbuzení. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
+- Dvanáct pětikolových obrázkových her pro předškoláky. Český pokyn zazní při spuštění hry a lze ho zopakovat reproduktorem. Správnou odpověď doprovází cinknutí a chybu krátké povzbuzení. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
+- **Výlet autobusem** procvičuje počítání po nástupu a výstupu zvířátek. Ve hře **Vyvaž váhu** děti rozdělují jablka do stejně těžkých misek. Ve hře **Kdo bydlí v domečku?** hledají medvídka podle barvy i vzorku. V **Domečcích v řadě** hledají správné místo podle obrázkových nápověd.
 - Hra **Co bylo nejdřív?** nabízí 26 příběhů se třemi obrázky a 30 příběhů s pěti obrázky. Každá karta je vlastní kreslenou ilustrací jednoho kroku. V rámci profilu v prohlížeči hra vybírá nejdřív dosud nepoužité příběhy.
 - V **Zaječí hostině** děti rozdělují mrkve podle teček na miskách a v závěru opravují popletenou svačinu. Mrkev při vložení křupne. Správné rozdělení se kontroluje zvonečkem.
 - 11 matematických a 9 jazykových okruhů pro 2. třídu.

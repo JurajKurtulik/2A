@@ -10,8 +10,8 @@ type Cell = Picture | "blank" | Graphic;
 const isGraphic = (cell: Cell): cell is Graphic => cell.startsWith("graphic-");
 const a4 = { width: 595.28, height: 841.89 };
 function rows(game: PreschoolGame, round: PreschoolRound, index: number): Cell[][] {
-  if (round.kind === "build" || round.kind === "maze" || round.kind === "more" || round.kind === "feed") return [[`graphic-${index}`]];
   if (round.kind === "story") return [round.options, round.options.map(() => "blank")];
+  if (round.kind !== "choice") return [[`graphic-${index}`]];
   const prompt: Cell[] = [...round.prompt];
   if (game === "pattern") prompt.push("blank");
   return prompt.length ? [prompt, round.options] : [round.options];
@@ -178,7 +178,7 @@ export async function downloadPreschoolSheet(game: PreschoolGame, rounds: Presch
   const groups = rounds.map((round, index) => rows(game, round, index));
   const graphics = new Map<Graphic, Uint8Array>();
   await Promise.all(rounds.map(async (round, index) => {
-    if (round.kind === "build" || round.kind === "maze" || round.kind === "more" || round.kind === "feed") {
+    if (round.kind !== "choice" && round.kind !== "story") {
       graphics.set(`graphic-${index}`, await renderPreschoolGraphic(round));
     }
   }));
