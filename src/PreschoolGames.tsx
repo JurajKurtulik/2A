@@ -18,22 +18,6 @@ function PictureCard({ picture }: { picture: Picture }) {
   return <img src={picturePath(picture)} alt={pictures[picture]} draggable={false} />;
 }
 
-const examples: Record<PreschoolGame, { before: Picture[]; after: Picture }> = {
-  odd: { before: ["cat", "dog", "rabbit", "leaf"], after: "leaf" },
-  pattern: { before: ["apple", "pear", "apple", "pear"], after: "apple" },
-  pair: { before: ["dots"], after: "dots" },
-  feed: { before: ["carrot"], after: "rabbit" },
-};
-
-function Example({ game }: { game: PreschoolGame }) {
-  const { before, after } = examples[game];
-  return <div className="preschool-example" aria-hidden="true">
-    {before.map((picture, i) => <PictureCard key={i} picture={picture} />)}
-    <ArrowRight />
-    <span><PictureCard picture={after} /><Check /></span>
-  </div>;
-}
-
 export function PreschoolGames({ onComplete }: {
   onComplete: (game: PreschoolGame, score: number, total: number) => void;
 }) {
@@ -59,14 +43,16 @@ export function PreschoolGames({ onComplete }: {
     audio.current = null;
   }, []);
 
-  function speak(game: PreschoolGame) {
+  function playSound(sound: PreschoolGame | "correct" | "retry") {
     setAudioError(false);
-    const src = new URL(`./preschool/audio/${game}.wav`, document.baseURI).href;
+    const src = new URL(`./preschool/audio/${sound}.wav`, document.baseURI).href;
     const player = audio.current ??= new Audio();
     if (player.src !== src) player.src = src;
+    player.volume = sound === "correct" ? 0.65 : 1;
     player.currentTime = 0;
     void player.play().catch((error: unknown) => {
-      if (!(error instanceof DOMException && error.name === "AbortError")) setAudioError(true);
+      if (sound !== "correct" && sound !== "retry" && player.src === src &&
+        !(error instanceof DOMException && error.name === "AbortError")) setAudioError(true);
     });
   }
 
@@ -82,21 +68,19 @@ export function PreschoolGames({ onComplete }: {
     resetRound();
     setExportError(false);
     setPlay({ game, rounds: preschoolRounds(game), index: 0, score: 0, finished: false });
-    speak(game);
+    playSound(game);
   }
 
   function next() {
     if (!play || !solved || play.finished) return;
     const score = play.score + Number(!wrong.length);
     if (play.index + 1 === play.rounds.length) {
-      audio.current?.pause();
       onComplete(play.game, score, play.rounds.length);
       setPlay({ ...play, score, finished: true });
       return;
     }
     resetRound();
     setPlay({ ...play, score, index: play.index + 1 });
-    speak(play.game);
   }
 
   async function exportSheet(format: "pdf" | "docx" | "print") {
@@ -140,8 +124,8 @@ export function PreschoolGames({ onComplete }: {
         <button type="button" className="preschool-back" onClick={back} aria-label="Zpět ke hrám"><ChevronLeft /></button>
         <h1>{game.title}</h1>
         {!play.finished && <button type="button" className="preschool-speaker" ref={element => { transition.current = element; }}
-          aria-label="Přehrát pokyn znovu" onClick={() => speak(play.game)}>
-          <img src={picturePath("speaker")} alt="" />
+          aria-label="Přehrát pokyn znovu" onClick={() => playSound(play.game)}>
+          <img src="./preschool/pictures/speaker.png" alt="" />
         </button>}
       </header>
       {play.finished ? (
@@ -155,7 +139,6 @@ export function PreschoolGames({ onComplete }: {
           <ol className="preschool-steps" aria-label={`Kolo ${play.index + 1} z ${play.rounds.length}`}>
             {play.rounds.map((_, i) => <li key={i} aria-hidden="true" className={i <= play.index ? "reached" : ""} />)}
           </ol>
-          {play.index === 0 && <Example game={play.game} />}
           {audioError && <p className="preschool-audio-error" role="status">Ťukni na reproduktor a poslechni si pokyn.</p>}
           {round.kind === "choice" ? (
             <>
@@ -167,8 +150,16 @@ export function PreschoolGames({ onComplete }: {
                 {round.options.map(picture => (
                   <button type="button" key={picture}
                     className={solved && picture === round.answer ? "correct" : wrong.includes(picture) ? "incorrect" : ""}
-                    disabled={solved || wrong.includes(picture)}
-                    onClick={() => picture === round.answer ? setSolved(true) : setWrong([...wrong, picture])}>
+                    disabled={solved}
+                    onClick={() => {
+                      if (picture === round.answer) {
+                        setSolved(true);
+                        playSound("correct");
+                      } else {
+                        if (!wrong.includes(picture)) setWrong([...wrong, picture]);
+                        playSound("retry");
+                      }
+                    }}>
                     <PictureCard picture={picture} />
                   </button>
                 ))}
@@ -185,6 +176,7 @@ export function PreschoolGames({ onComplete }: {
                     setFed([...fed, i]);
                     setUsedCarrots([...usedCarrots, carrot]);
                     setCarrot(null);
+                    playSound("correct");
                     if (fed.length + 1 === round.count) setSolved(true);
                   }}>
                   <PictureCard picture="rabbit" />
