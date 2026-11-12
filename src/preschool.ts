@@ -1,3 +1,5 @@
+import { storyBanks, storyFrameId, storyFrameLabels, type StoryLevel } from "./banks/preschool-stories";
+
 export const pictures = {
   apple: "jablko", pear: "hruška", banana: "banán", boot: "holínka",
   cat: "kočka", dog: "pejsek", rabbit: "zajíček", carrot: "mrkev",
@@ -16,15 +18,20 @@ export const pictures = {
   wholeApple: "celé jablko", bittenApple: "nakousnuté jablko", appleCore: "ohryzek",
   house: "domeček",
 } as const;
-export type Picture = keyof typeof pictures;
-export const picturePath = (picture: Picture) => `./preschool/pictures/${picture}.png`;
+type GamePicture = keyof typeof pictures;
+type StoryPicture = ReturnType<typeof storyFrameId>;
+export type Picture = GamePicture | StoryPicture;
+export const picturePath = (picture: Picture) =>
+  `./preschool/${picture.startsWith("story-") ? "stories" : "pictures"}/${picture}.png`;
+export const pictureLabel = (picture: Picture) =>
+  Object.hasOwn(pictures, picture) ? pictures[picture as GamePicture] : storyFrameLabels[picture];
 
 export const preschoolGames = {
   odd: { title: "Co sem nepatří?", picture: "boot", instruction: "Zakroužkuj obrázek, který mezi ostatní nepatří." },
   pattern: { title: "Co přijde dál?", picture: "leaf", instruction: "Zakroužkuj obrázek, který pokračuje v řadě." },
   pair: { title: "Najdi pár", picture: "stripes", instruction: "Zakroužkuj ponožku, která je stejná jako předloha." },
   feed: { title: "Nakrm zajíčky", picture: "rabbit", instruction: "Spoj každého zajíčka s jednou mrkví." },
-  story: { title: "Co bylo nejdřív?", picture: "butterfly", instruction: "Napiš k obrázkům 1, 2 a 3 podle toho, jak se příběh stal." },
+  story: { title: "Co bylo nejdřív?", picture: "butterfly", instruction: "Očísluj obrázky podle toho, jak se příběh stal." },
   build: { title: "Postav podle obrázku", picture: "build", instruction: "Překresli tvary do prázdných políček podle vzoru." },
   maze: { title: "Doveď kočku domů", picture: "house", instruction: "Nakresli kočce cestu k domečku po volných políčkách." },
   more: { title: "Kde je víc?", picture: "strawberry", instruction: "Zakroužkuj skupinu, ve které je víc obrázků." },
@@ -35,7 +42,7 @@ export const preschoolTopic = (game: PreschoolGame) => `preschool-${game}`;
 
 type ChoiceRound = { kind: "choice"; prompt: Picture[]; options: Picture[]; answer: Picture };
 type FeedRound = { kind: "feed"; count: number };
-export type StoryRound = { kind: "story"; order: Picture[]; options: Picture[] };
+export type StoryRound = { kind: "story"; storyId: string; order: Picture[]; options: Picture[] };
 export const shapes = {
   circle: { label: "kruh", color: "#e18d31" },
   square: { label: "čtverec", color: "#4d89c7" },
@@ -68,11 +75,28 @@ const oddGroups: { family: Picture[]; outsiders: Picture[] }[] = [
   { family: socks, outsiders: [...fruit, ...animals, ...vehicles, ...nature] },
 ];
 const patternPictures = [...fruit, ...animals, ...vehicles, ...socks, ...nature, "boot"] as const;
-const stories: Picture[][] = [
-  ["seed", "sprout", "bloom"], ["dough", "rawPizza", "pizza"],
-  ["ice", "melting", "puddle"], ["caterpillar", "chrysalis", "butterfly"],
-  ["cone", "scoop", "sundae"], ["wholeApple", "bittenApple", "appleCore"],
+const originalStories: readonly [string, Picture[]][] = [
+  ["plant-pot", ["seed", "sprout", "bloom"]], ["pizza", ["dough", "rawPizza", "pizza"]],
+  ["melting-ice", ["ice", "melting", "puddle"]], ["butterfly", ["caterpillar", "chrysalis", "butterfly"]],
+  ["ice-cream", ["cone", "scoop", "sundae"]], ["apple", ["wholeApple", "bittenApple", "appleCore"]],
 ];
+
+function storyRounds(level: StoryLevel, recent: readonly string[]): StoryRound[] {
+  const bank: readonly [string, Picture[]][] = [
+    ...(level === 1 ? originalStories : []),
+    ...storyBanks[level].map(([id, frames]): [string, Picture[]] => [
+      id, frames.map((_, index) => storyFrameId(id, index)),
+    ]),
+  ];
+  const lastPlayed = new Map(recent.map((id, index) => [id, index]));
+  const recency = (id: string) => lastPlayed.get(id) ?? recent.length;
+  const candidates = shuffle(bank).sort(([a], [b]) => recency(b) - recency(a));
+  return candidates.slice(0, 5).map(([storyId, order]) => {
+    const options = shuffle(order);
+    if (options.every((picture, index) => picture === order[index])) options.push(options.shift()!);
+    return { kind: "story", storyId, order, options };
+  });
+}
 const mazes = [
   ["S..", "##.", "..G"],
   ["S#..", ".#.#", "...G"],
@@ -92,7 +116,7 @@ export function mazeStep(round: MazeRound, position: number, direction: Directio
   return tile && tile !== "#" ? row * width + column : null;
 }
 
-export function preschoolRounds(game: PreschoolGame): PreschoolRound[] {
+export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, recentStories: readonly string[] = []): PreschoolRound[] {
   switch (game) {
     case "odd": {
       const groups = shuffle(oddGroups);
@@ -118,11 +142,7 @@ export function preschoolRounds(game: PreschoolGame): PreschoolRound[] {
     case "feed":
       return [1, 2, 3, 4, shuffle([5, 6])[0]].map(count => ({ kind: "feed", count }));
     case "story":
-      return shuffle(stories).slice(0, 5).map(order => {
-        const options = shuffle(order);
-        if (options.every((picture, index) => picture === order[index])) options.push(options.shift()!);
-        return { kind: "story", order, options };
-      });
+      return storyRounds(level, recentStories);
     case "build":
       return [2, 2, 3, 4, 5].map((count, index) => {
         const columns = index < 2 ? 2 : 3;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, Check, RotateCcw, Star } from "lucide-react";
+import type { StoryLevel } from "./banks/preschool-stories";
 import {
   preschoolGameIds, preschoolGames, preschoolRounds,
   type PreschoolGame, type PreschoolRound,
@@ -13,12 +14,16 @@ type Play = {
   index: number;
   score: number;
   finished: boolean;
+  level: StoryLevel;
 };
 
-export function PreschoolGames({ onComplete }: {
-  onComplete: (game: PreschoolGame, score: number, total: number) => void;
+export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }: {
+  onComplete: (game: PreschoolGame, score: number, total: number, level: StoryLevel) => void;
+  recentStories?: readonly string[];
+  onStoriesSeen: (ids: string[]) => void;
 }) {
   const [play, setPlay] = useState<Play | null>(null);
+  const [chooseStory, setChooseStory] = useState(false);
   const [wrong, setWrong] = useState<string[]>([]);
   const [solved, setSolved] = useState(false);
   const [carrot, setCarrot] = useState<number | null>(null);
@@ -30,7 +35,7 @@ export function PreschoolGames({ onComplete }: {
   const audio = useRef<HTMLAudioElement | null>(null);
   const transition = useRef<HTMLElement | null>(null);
   const previousScreen = useRef("");
-  const screen = play ? `${play.game}-${play.index}-${play.finished}` : "menu";
+  const screen = play ? `${play.game}-${play.index}-${play.finished}` : chooseStory ? "story-levels" : "menu";
   useEffect(() => {
     if (previousScreen.current) transition.current?.focus();
     previousScreen.current = screen;
@@ -61,10 +66,14 @@ export function PreschoolGames({ onComplete }: {
     setUsedCarrots([]);
   }
 
-  function start(game: PreschoolGame) {
+  function start(game: PreschoolGame, level: StoryLevel = 1) {
     resetRound();
     setExportError(false);
-    setPlay({ game, rounds: preschoolRounds(game), index: 0, score: 0, finished: false });
+    const rounds = preschoolRounds(game, level, recentStories);
+    if (game === "story") {
+      onStoriesSeen(rounds.flatMap(round => round.kind === "story" ? [round.storyId] : []));
+    }
+    setPlay({ game, rounds, index: 0, score: 0, finished: false, level });
     playSound(game);
   }
 
@@ -72,7 +81,7 @@ export function PreschoolGames({ onComplete }: {
     if (!play || !solved || play.finished) return;
     const score = play.score + Number(!wrong.length);
     if (play.index + 1 === play.rounds.length) {
-      onComplete(play.game, score, play.rounds.length);
+      onComplete(play.game, score, play.rounds.length, play.level);
       setPlay({ ...play, score, finished: true });
       return;
     }
@@ -98,12 +107,32 @@ export function PreschoolGames({ onComplete }: {
     audio.current?.pause();
     setPlay(null);
   };
+  if (!play && chooseStory) return (
+    <section className="preschool-menu">
+      <header className="preschool-toolbar">
+        <button type="button" className="preschool-back" onClick={() => setChooseStory(false)} aria-label="Zpět ke hrám"><ChevronLeft /></button>
+        <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Co bylo nejdřív?</h1>
+      </header>
+      <div className="preschool-levels" aria-label="Vyber úroveň">
+        {([1, 2] as const).map(level => {
+          const count = level === 1 ? 3 : 5;
+          return <button key={level} type="button" className={`preschool-game level-${level}`} onClick={() => start("story", level)}>
+            <span className="preschool-level-cards" aria-hidden="true">
+              {Array.from({ length: count }, (_, i) => <span key={i} />)}
+            </span>
+            <strong>{level === 1 ? "3 obrázky" : "5 obrázků"}</strong>
+            <small>Úroveň {level}</small>
+          </button>;
+        })}
+      </div>
+    </section>
+  );
   if (!play) return (
     <section className="preschool-menu">
       <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Obrázkové hry</h1>
       <div className="preschool-games">
         {preschoolGameIds.map(id => (
-          <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => start(id)}>
+          <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => id === "story" ? setChooseStory(true) : start(id)}>
             {preschoolGames[id].picture === "build" ? (
               <span className="preschool-build-icon" aria-hidden="true">
                 <ShapePiece shape="circle" /><ShapePiece shape="square" /><ShapePiece shape="triangle" />
@@ -128,7 +157,7 @@ export function PreschoolGames({ onComplete }: {
   return (
     <section className="preschool-play" aria-label={game.title}>
       <header className="preschool-toolbar">
-        <button type="button" className="preschool-back" onClick={back} aria-label="Zpět ke hrám"><ChevronLeft /></button>
+        <button type="button" className="preschool-back" onClick={back} aria-label={play.game === "story" ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
         <h1>{game.title}</h1>
         {!play.finished && <button type="button" className="preschool-speaker" ref={element => { transition.current = element; }}
           aria-label="Přehrát pokyn znovu" onClick={() => playSound(play.game)}>
@@ -139,7 +168,7 @@ export function PreschoolGames({ onComplete }: {
         <div className="preschool-finish">
           <Star size={64} aria-hidden="true" />
           <h2 tabIndex={-1} ref={element => { transition.current = element; }}>Hotovo!</h2>
-          <button type="button" className="button primary" onClick={() => start(play.game)}><RotateCcw /> Hrát znovu</button>
+          <button type="button" className="button primary" onClick={() => start(play.game, play.level)}><RotateCcw /> Hrát znovu</button>
         </div>
       ) : (
         <div className="preschool-board">
@@ -219,6 +248,7 @@ export function PreschoolGames({ onComplete }: {
           {["PDF", "Word", "Tisk"][index]}
         </button>)}
         {exportError && <p role="alert">Pracovní list se nepodařilo připravit.</p>}
+        {play.game === "story" && <p><small><a href="./preschool/stories/credits.txt">Licence příběhových ilustrací</a></small></p>}
       </details>
     </section>
   );

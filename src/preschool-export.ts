@@ -3,7 +3,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { Document, ImageRun, Packer, Paragraph, TextRun } from "docx";
 import { loadFonts, saveDownload } from "./export";
 import { paperGraphic, renderPreschoolGraphic } from "./preschool-paper-art";
-import { picturePath, pictures, preschoolGames, type Picture, type PreschoolGame, type PreschoolRound } from "./preschool";
+import { picturePath, pictureLabel, preschoolGames, type Picture, type PreschoolGame, type PreschoolRound } from "./preschool";
 
 type Graphic = `graphic-${number}`;
 type Cell = Picture | "blank" | Graphic;
@@ -11,7 +11,7 @@ const isGraphic = (cell: Cell): cell is Graphic => cell.startsWith("graphic-");
 const a4 = { width: 595.28, height: 841.89 };
 function rows(game: PreschoolGame, round: PreschoolRound, index: number): Cell[][] {
   if (round.kind === "build" || round.kind === "maze" || round.kind === "more") return [[`graphic-${index}`]];
-  if (round.kind === "story") return [round.options, ["blank", "blank", "blank"]];
+  if (round.kind === "story") return [round.options, round.options.map(() => "blank")];
   if (round.kind === "feed") return [
     Array.from({ length: round.count }, () => "rabbit"),
     Array.from({ length: round.count }, () => "carrot"),
@@ -42,6 +42,8 @@ async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Pi
   page.drawText("Škola hrou  /  Předškolák", { x: 42, y: 799, size: 11, font: regular, color: ink });
   page.drawText(title, { x: 42, y: 765, size: 24, font: bold, color: ink });
   page.drawText(instruction, { x: 42, y: 739, size: 12, font: regular, color: ink });
+  const storyCredit = game === "story" && assetsHaveStoryCards(rounds);
+  if (storyCredit) page.drawText(storyAttribution, { x: 42, y: 21, size: 8, font: regular, color: ink });
   rounds.forEach((group, i) => {
     const top = 703 - i * 133;
     page.drawText(`${i + 1}.`, { x: 42, y: top - 21, size: 12, font: bold, color: ink });
@@ -67,8 +69,14 @@ async function exportPdf(game: PreschoolGame, rounds: Cell[][][], assets: Map<Pi
   return pdf.save();
 }
 
+const storyAttribution = "Složené ilustrace: Twemoji © Twitter, Inc. a přispěvatelé · CC BY 4.0 · github.com/jdecked/twemoji";
+function assetsHaveStoryCards(rounds: Cell[][][]) {
+  return rounds.some(group => group.some(row => row.some(cell => cell.startsWith("story-"))));
+}
+
 async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<Picture | Graphic, Uint8Array>) {
   const { title, instruction } = preschoolGames[game];
+  const blank = game === "story" ? await storyWritingBox() : undefined;
   const document = new Document({
     creator: "Škola hrou",
     title,
@@ -84,19 +92,38 @@ async function exportDocx(game: PreschoolGame, rounds: Cell[][][], assets: Map<P
           children: [
             new TextRun({ text: rowIndex === 0 ? `${index + 1}.   ` : "      ", bold: true }),
             ...row.flatMap(cell => [
-              cell === "blank" ? new TextRun({ text: "□", size: 60 }) : new ImageRun({
+              cell === "blank" ? (blank
+                ? new ImageRun({ type: "png", data: blank, transformation: { width: 48, height: 48 },
+                    altText: { name: "blank", title: "Políčko pro číslo", description: "Prázdné políčko pro pořadí obrázku." } })
+                : new TextRun({ text: "□", size: 60 })) : new ImageRun({
                 type: "png", data: assets.get(cell)!,
                 transformation: isGraphic(cell) ? { width: 345, height: 91 } : { width: 48, height: 48 },
-                altText: { name: cell, title: isGraphic(cell) ? title : pictures[cell], description: isGraphic(cell) ? instruction : pictures[cell] },
+                altText: { name: cell, title: isGraphic(cell) ? title : pictureLabel(cell), description: isGraphic(cell) ? instruction : pictureLabel(cell) },
               }),
               new TextRun({ text: " " }),
             ]),
           ],
         }))),
+        ...(game === "story" && assetsHaveStoryCards(rounds)
+          ? [new Paragraph({ children: [new TextRun({ text: storyAttribution, size: 15 })] })] : []),
       ],
     }],
   });
   return Packer.toBlob(document);
+}
+
+async function storyWritingBox() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 96;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Pracovní list se nepodařilo připravit.");
+  ctx.strokeStyle = "#40604c";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(4, 4, 88, 88);
+  const blob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(result => result ? resolve(result) : reject(new Error("Políčko nelze uložit.")), "image/png"),
+  );
+  return new Uint8Array(await blob.arrayBuffer());
 }
 
 async function printSheet(game: PreschoolGame, rounds: Cell[][][], graphics: Map<Graphic, Uint8Array>) {
@@ -137,7 +164,7 @@ async function printSheet(game: PreschoolGame, rounds: Cell[][][], graphics: Map
             image.className = "preschool-paper-graphic";
           } else {
             image.src = picturePath(cell);
-            image.alt = pictures[cell];
+            image.alt = pictureLabel(cell);
           }
           images.push(image);
           line.append(image);
@@ -147,6 +174,11 @@ async function printSheet(game: PreschoolGame, rounds: Cell[][][], graphics: Map
     });
     page.append(rowGroup);
   });
+  if (game === "story" && assetsHaveStoryCards(rounds)) {
+    const credit = document.createElement("small");
+    credit.textContent = storyAttribution;
+    page.append(credit);
+  }
   root.append(page);
   document.body.append(root);
   try {

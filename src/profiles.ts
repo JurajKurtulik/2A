@@ -7,6 +7,7 @@ export type Profile = {
   history: HistoryEntry[];
   grade?: Grade;
   recent: string[];
+  recentStories?: string[];
 };
 
 export const OLIVER_PROFILE_INDEX = 2;

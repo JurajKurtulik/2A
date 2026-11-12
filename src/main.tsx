@@ -630,14 +630,21 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
             </div>
           )}
           {isPreschool && page === "home" && (
-            <PreschoolGames onComplete={(game, score, total) => updateProfile({
-              ...profile,
-              history: [{
-                date: new Date().toISOString(), label: preschoolGames[game].title,
-                kind: "practice", grade: PRESCHOOL_GRADE, score, total,
-                topics: [{ id: preschoolTopic(game), right: score, total }],
-              }, ...profile.history],
-            })} />
+            <PreschoolGames
+              recentStories={profile.recentStories}
+              onStoriesSeen={ids => updateProfile({
+                ...profile, recentStories: [...new Set([...ids, ...(profile.recentStories ?? [])])],
+              })}
+              onComplete={(game, score, total, level) => updateProfile({
+                ...profile,
+                history: [{
+                  date: new Date().toISOString(),
+                  label: preschoolGames[game].title + (game === "story" ? (level === 1 ? " · 3 obrázky" : " · 5 obrázků") : ""),
+                  kind: "practice", grade: PRESCHOOL_GRADE, score, total,
+                  topics: [{ id: preschoolTopic(game), right: score, total }],
+                }, ...profile.history],
+              })}
+            />
           )}
           {!isPreschool && !session &&
             !currentTopics.length &&
