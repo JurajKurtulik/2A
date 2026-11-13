@@ -63,10 +63,11 @@ export async function renderPreschoolGraphic(round: GraphicRound): Promise<Uint8
 
   if (round.kind === "match") {
     const images = await Promise.all([...round.pizzas, ...round.slices].map(loadPicture));
+    const count = round.pizzas.length;
     images.forEach((image, i) => {
-      const x = 95 + (i % 3) * 105;
-      ctx.drawImage(image, x, i < 3 ? 0 : 76, 50, 50);
-      if (i < 3) ctx.strokeRect(x + 10, 49, 30, 24);
+      const x = 215 + (i % count - (count - 1) / 2) * (count === 5 ? 78 : 105);
+      ctx.drawImage(image, x, i < count ? 0 : 76, 50, 50);
+      if (i < count) ctx.strokeRect(x + 10, 49, 30, 24);
     });
   }
   if (round.kind === "iceCream") {
@@ -143,7 +144,7 @@ export async function renderPreschoolGraphic(round: GraphicRound): Promise<Uint8
 
   if (round.kind === "maze") {
     const [cat, house] = await Promise.all([loadPicture("cat"), loadPicture("house")]);
-    const size = 28;
+    const size = Math.min(28, Math.floor(116 / round.map.length));
     round.map.forEach((row, y) => [...row].forEach((tile, x) => {
       const left = 4 + x * size, top = 5 + y * size;
       if (tile === "#") {

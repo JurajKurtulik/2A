@@ -135,6 +135,22 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
 });
 
 test("New visual banks contain thirty complete variants and second levels are playable", () => {
+  const pizzaRounds = preschoolRounds("match", 2);
+  assert.ok(pizzaRounds.every(round => round.kind === "match" && new Set(round.pizzas).size === 5 && new Set(round.slices).size === 5));
+  assert.equal(new Set(pizzaRounds.flatMap(round => round.kind === "match" ? round.pizzas : [])).size, 13);
+  for (const round of preschoolRounds("maze", 2)) {
+    assert.equal(round.kind, "maze");
+    assert.equal(round.map.length, 6);
+    assert.ok(round.map.every(row => row.length === 7));
+    const visited = new Set([round.start]);
+    for (const cell of visited) {
+      for (const direction of Object.keys(directions) as Direction[]) {
+        const next = mazeStep(round, cell, direction);
+        if (next !== null) visited.add(next);
+      }
+    }
+    assert.ok(visited.has(round.goal));
+  }
   for (const game of ["bricks", "shadow", "piece"] as const) {
     for (let variant = 1; variant <= 30; variant++) {
       assert.ok(existsSync(`public/preschool/visual/${game}-${variant}.png`));
