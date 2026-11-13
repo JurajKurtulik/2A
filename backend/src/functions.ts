@@ -9,6 +9,7 @@ import { VaultKeys } from './security.js';
 import { ReviewService } from './service.js';
 import { BlobStore } from './store.js';
 import { ProfileAuth, ProgressDatabase, parseProgressConfig, progressJson, validateEvents } from './progress.js';
+import { connectVoice } from './voice.js';
 
 app.setup({ enableHttpStream: true });
 const origin = process.env.PHOTO_ALLOWED_ORIGIN ?? 'https://jurajkurtulik.github.io';
@@ -115,6 +116,17 @@ app.http('profileLogin', { route: 'v1/profile/login', methods: ['POST', 'OPTIONS
   handler: request => handle(request, async () => ({
     status: 200, jsonBody: await profileAuth().login(await progressJson(request, 2048)),
   })) });
+app.http('voicePilot', { route: 'v1/profile/voice', methods: ['POST', 'OPTIONS'], authLevel: 'anonymous',
+  handler: request => handle(request, async () => {
+    if (process.env.VOICE_PILOT_ENABLED !== 'true') throw new ApiError(503, 'voice_unavailable');
+    const auth = profileAuth();
+    const profile = auth.profile(request.headers.get('authorization'));
+    const answer = await connectVoice(await progressJson(request, 32 * 1024), auth.profileName(profile), service().store, credential, {
+      endpoint: required('VOICE_FOUNDRY_ENDPOINT'),
+      deployment: required('VOICE_FOUNDRY_DEPLOYMENT'), daily: positive('VOICE_PILOT_DAILY_LIMIT', 10, 100),
+    });
+    return { status: 200, headers: { 'Content-Type': 'application/sdp' }, body: answer };
+  }) });
 app.http('profileHistory', { route: 'v1/profile/progress', methods: ['GET', 'POST', 'OPTIONS'], authLevel: 'anonymous',
   handler: request => handle(request, async () => {
     const profile = profileAuth().profile(request.headers.get('authorization'));

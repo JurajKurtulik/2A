@@ -110,3 +110,9 @@ Pro kontrolu exportů lze spustit `node --import tsx scripts/verify-exports.ts`.
 ## Další možnosti rozvoje
 
 Nové učivo pro další ročníky a předměty, ukládání oblíbených sestav písemek, export a import místního pokroku, nové typy úloh, namluvené pokyny nebo volitelná synchronizace. Aplikace zatím obsahuje učivo pro druhou třídu.
+
+## Angličtina nahlas
+
+Hlasový pilot je dostupný ve frontendu sestaveném s `VITE_VOICE_PILOT=true`. Relace používá stávající přihlášení k profilu. Azure Function musí mít na účtu hlasového modelu roli Cognitive Services User. Nastavení funkce jsou `VOICE_PILOT_ENABLED=true`, `VOICE_FOUNDRY_ENDPOINT`, `VOICE_FOUNDRY_DEPLOYMENT` a volitelné `VOICE_PILOT_DAILY_LIMIT` (výchozí 10 pokusů za den UTC).
+
+Prohlížeč ukončuje běžnou lekci po pěti minutách. Denní limit na serveru počítá zahájení relací. Aplikace neukládá audio ani přepisy. Pilot nejdřív zkouší dospělý. Před zpřístupněním dětem ověřte podmínky zpracování hlasu, nastavení uchovávání dat u vybraného nasazení a chování při odbočení od učiva.
