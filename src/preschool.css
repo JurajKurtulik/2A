@@ -122,7 +122,7 @@
   height: clamp(43px, 13vw, 63px); padding: 4px; background: #fff; border: 1px solid #bdcdbb; border-radius: 9px;
 }
 .trip-seat-empty { background: #fff9e1; border-style: dashed; }
-.trip-seats .trip-rider, .trip-seats .trip-seat-empty { width: 20%; height: 100%; background: #dbf3fb; border-color: #9dbecb; }
+.trip-seats .trip-rider, .trip-seats .trip-seat-empty { width: calc(100% / 6); min-width: 0; height: 100%; background: #dbf3fb; border-color: #9dbecb; }
 button.trip-rider { cursor: pointer; }
 .trip-rider img { width: 100%; height: 100%; object-fit: contain; }
 .trip-rider svg { position: absolute; right: -2px; bottom: -2px; width: 21px; height: 21px; padding: 2px; background: #286749; color: #fff; border-radius: 50%; }
@@ -130,53 +130,49 @@ button.trip-rider { cursor: pointer; }
 .trip-stop > div { min-height: 52px; min-width: 54px; padding: 4px; border: 1px dashed #9cb9a7; border-radius: 12px; background: #edf6e8; }
 .trip-stop > div + div { background: #f3eee4; border-color: #c7b899; }
 .trip-puzzle .puzzle-choice-row button:disabled:not([aria-pressed="true"]) { opacity: .48; }
-.balance-machine {
-  width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 13%;
-  position: relative; padding-block: 16px 30px; isolation: isolate;
+.balance-machine { position: relative; width: min(100%, 420px); aspect-ratio: 1; margin-block: -11% -13%; }
+.balance-machine > img, .balance-pan > img { position: absolute; inset: 0; width: 100%; pointer-events: none; }
+.balance-arm-art { transform-origin: 50% 29%; transform: rotate(var(--tilt)); transition: transform .2s ease; }
+.balance-base-art { z-index: 1; }
+.balance-pan { position: absolute; inset: 0; pointer-events: none; transform: translateY(calc(var(--travel) * -1)); transition: transform .2s ease; }
+.balance-pan.pan-1 { transform: translateY(var(--travel)); }
+.balance-pan.pan-1 > img { transform: scaleX(-1); }
+.balance-pan-apples {
+  position: absolute; left: 0; width: 35%; top: 34%; height: 36%; display: flex; flex-wrap: wrap;
+  justify-content: center; align-content: end; gap: 1px; padding: 0 5% 13%; pointer-events: auto;
 }
-.balance-beam, .balance-stand { position: absolute; background: #ae7040; z-index: -1; }
-.balance-beam { left: 17%; right: 17%; bottom: 33px; height: 9px; border-radius: 10px; transform: rotate(var(--tilt)); transition: transform .2s ease; }
-.balance-stand { width: 45px; height: 43px; bottom: 5px; left: calc(50% - 22px); background: #cc945b; clip-path: polygon(50% 0%, 62% 0, 67% 78%, 100% 86%, 100% 100%, 0 100%, 0 86%, 33% 78%, 38% 0); }
-.balance-pan {
-  display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 2px;
-  min-height: 80px; padding: 5px; border: 2px solid #8cb1ba; border-radius: 12px 12px 32px 32px;
-  background: #e1f2f6; position: relative; isolation: isolate; transition: transform .2s ease;
-  transform: translateY(calc(var(--travel) * -1));
-}
-.balance-pan:last-child { transform: translateY(var(--travel)); }
+.pan-1 .balance-pan-apples { left: auto; right: 0; }
+.balance-basket { position: relative; display: flex; justify-content: center; gap: 4px; width: min(100%, 310px); min-height: 48px; padding: 4px; border-bottom: 2px dashed #bb9870; }
 .puzzle-drop-target { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; border-radius: inherit; cursor: pointer; }
 .balance-apple {
-  position: relative; display: grid; place-items: center; padding: 2px; width: clamp(30px, 8vw, 48px);
-  height: 40px; border: 2px solid transparent; border-radius: 10px; background: #fffaf1; cursor: pointer;
+  position: relative; display: grid; place-items: center; padding: 0; width: clamp(26px, 7vw, 40px);
+  aspect-ratio: 1; border: 0; border-radius: 50%; background: transparent; cursor: grab; touch-action: none;
 }
-.balance-apple img { width: 100%; height: 100%; object-fit: contain; }
+.balance-apple[aria-pressed="true"] { background: transparent; outline: 2px solid #ae7323; outline-offset: 1px; }
+.balance-pan-apples[data-crowded="true"] .balance-apple { width: 29%; }
+.balance-apple img { pointer-events: none; user-select: none; width: 100%; height: 100%; object-fit: contain; }
 .door-clue { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border: 2px solid #ddc59e; border-radius: 14px; background: #fff2db; }
 .door-sign { display: flex; align-items: center; gap: 8px; }
-.door-sign > img { width: 62px; aspect-ratio: 1; object-fit: contain; }
+.door-sign > img { width: clamp(75px, 24vw, 145px); aspect-ratio: 1; object-fit: contain; }
+.door-clue .pattern-swatch { width: clamp(46px, 12vw, 76px); }
 .pattern-swatch { display: block; width: 40px; aspect-ratio: 1; border: 1px solid #806a50; border-radius: 9px; background-color: var(--patch); }
 .pattern-swatch.dots, .pattern-swatch.stripes, .pattern-swatch.checker { background-color: #fff7df; }
 .pattern-swatch.dots { background-image: radial-gradient(circle, var(--patch) 31%, transparent 34%); background-size: 11px 11px; background-position: center; }
 .pattern-swatch.stripes { background-image: repeating-linear-gradient(-42deg, var(--patch) 0 4px, transparent 4px 8px); }
 .pattern-swatch.checker { background-image: conic-gradient(var(--patch) 25%, transparent 0 50%, var(--patch) 0 75%, transparent 0); background-size: 12px 12px; }
 .bear-options button > img, .street-houses img, .street-slot img { width: 100%; height: 100%; object-fit: contain; }
-.bear-options .pattern-swatch { position: absolute; bottom: 10%; width: 36%; border-radius: 50%; }
-.street-clues { display: flex; justify-content: center; gap: 5px; width: 100%; }
-.street-clue {
-  display: flex; align-items: center; justify-content: center; gap: 3px;
-  padding: 5px; border: 1px solid #e1c599; border-radius: 10px; background: #fff2d9;
-}
-.street-clue img { width: clamp(19px, 5vw, 34px); aspect-ratio: 1; object-fit: contain; }
-.street-clue svg { width: clamp(13px, 4vw, 23px); color: #375f4b; }
-.street-mini { display: flex; gap: 2px; }
-.street-mini i { width: clamp(7px, 1.7vw, 12px); aspect-ratio: 1; border: 1px solid #657767; border-radius: 2px; background: #fff; }
-.street-mini i.marked { background: #48775c; }
+.bear-options button { width: clamp(49px, 16vw, 86px); }
+.bear-art { width: 100%; height: 100%; position: relative; display: grid; place-items: center; }
+.bear-art img { width: 100%; height: 100%; object-fit: contain; }
+.bear-art .pattern-swatch { position: absolute; left: 50%; top: 64.7%; width: 36%; height: 36%; border-radius: 50%; transform: translate(-50%, -50%); background-size: 8px 8px; }
+.bear-art .pattern-swatch.stripes { background-size: auto; }
+.street-model > span { display: grid; place-items: center; width: clamp(43px, 14vw, 85px); aspect-ratio: 1; border-radius: 13px; background: #fff2d9; padding: 5px; }
+.street-model img { width: 100%; height: 100%; object-fit: contain; }
 .street-track { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; }
 .street-slot { width: clamp(43px, 14vw, 85px); aspect-ratio: 1; border-style: dashed; background: #eff6e8; }
-.street-tree { display: grid; place-items: center; width: clamp(31px, 10vw, 58px); }
-.street-tree img { width: 100%; aspect-ratio: 1; object-fit: contain; }
 .street-houses button:disabled { opacity: .28; }
 @media (prefers-reduced-motion: reduce) {
-  .balance-beam, .balance-pan { transition: none; }
+  .balance-arm-art, .balance-pan { transition: none; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .feed-bowl[data-result="served"]::after { animation: feed-served .28s ease-out; }

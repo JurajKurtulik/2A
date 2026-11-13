@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { directions, matchingBear, mazeStep, pictureLabel, picturePath, pictures, preschoolGameIds, preschoolRounds,
-  streetFarIndex, streetNeighborIndex, tripCount, type Direction } from "../src/preschool";
+  tripCapacity, tripCount, type Direction } from "../src/preschool";
 import { storyBanks, storyFrameId } from "../src/banks/preschool-stories";
 
 test("Preschool rounds have one solution and local illustrations and speech", () => {
@@ -18,13 +18,18 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
     assert.ok(existsSync(`public/preschool/audio/${game}.wav`), game);
     const rounds = preschoolRounds(game);
     assert.equal(rounds.length, 5);
+    if (game === "trip") {
+      const totals = rounds.flatMap(round => round.kind === "trip" ? [tripCount(round)] : []);
+      assert.equal(new Set(totals).size, 5);
+      assert.ok(totals.includes(tripCapacity));
+    }
     if (game === "pair") assert.equal(new Set(rounds.map(round => round.kind === "choice" && round.answer)).size, 5);
     for (const round of rounds) {
       if (round.kind === "trip") {
         const riders = [...round.stay, ...round.exit, ...round.waiting];
         assert.equal(new Set(riders).size, riders.length);
-        assert.ok(round.stay.length + round.exit.length <= 5);
-        assert.ok(round.options.every(count => count >= 1 && count <= 5));
+        assert.ok(round.stay.length + round.exit.length <= tripCapacity);
+        assert.ok(round.options.every(count => count >= 1 && count <= tripCapacity));
         assert.equal(round.options.filter(count => count === tripCount(round)).length, 1);
         continue;
       }
@@ -41,13 +46,9 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
         continue;
       }
       if (round.kind === "street") {
-        const fixedHouses = [round.anchor, round.neighbor, ...(round.farHouse ? [round.farHouse] : [])];
-        const fixedSlots = [round.anchorIndex, streetNeighborIndex(round), ...(round.farHouse ? [streetFarIndex(round)] : [])];
         assert.equal(new Set(round.houses).size, round.houses.length);
-        assert.equal(new Set(fixedHouses).size, round.houses.length - 1);
-        assert.equal(new Set(fixedSlots).size, round.houses.length - 1);
-        assert.ok(fixedHouses.every(house => round.houses.includes(house)));
-        assert.ok(fixedSlots.every(slot => slot >= 0 && slot < round.houses.length));
+        assert.deepEqual([...round.model].sort(), [...round.houses].sort());
+        assert.notDeepEqual(round.model, round.houses);
         continue;
       }
       if (round.kind === "feed") {

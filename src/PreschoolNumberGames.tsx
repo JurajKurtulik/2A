@@ -1,18 +1,18 @@
-import { useState, type CSSProperties } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bell, Check } from "lucide-react";
+import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { ArrowDown, ArrowUp, Check } from "lucide-react";
 import { PictureCard } from "./PreschoolPuzzles";
 import {
-  bearColors, bearPatterns, dotLayouts, matchingBear, pictureLabel, streetFarIndex, streetNeighborIndex, tripCount,
+  bearColors, bearPatterns, dotLayouts, matchingBear, pictureLabel, tripCapacity, tripCount,
   type BalanceRound, type BearPatch, type DoorRound, type Picture, type StreetHouse, type StreetRound, type TripRound,
 } from "./preschool";
 
 type Feedback = { solved: boolean; onCorrect: () => void; onWrong: () => void };
 
-function Confirm({ label, bell = false, disabled, onClick }: {
-  label: string; bell?: boolean; disabled: boolean; onClick: () => void;
+function Confirm({ label, disabled, onClick }: {
+  label: string; disabled: boolean; onClick: () => void;
 }) {
   return <button type="button" className="feed-bell" aria-label={label} disabled={disabled} onClick={onClick}>
-    {bell ? <Bell /> : <Check />}
+    <Check />
   </button>;
 }
 
@@ -45,7 +45,7 @@ export function TripPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { r
     if (round.stay.includes(picture)) return <span className="trip-rider" key={picture}><PictureCard picture={picture} /></span>;
     const direction = seated ? "Vystoupí" : "Nastoupí";
     return <button type="button" className="trip-rider" key={picture}
-      aria-label={`${direction}: ${pictureLabel(picture)}`} disabled={solved || (!seated && seats.length === 5)}
+      aria-label={`${direction}: ${pictureLabel(picture)}`} disabled={solved || (!seated && seats.length === tripCapacity)}
       onClick={() => move(picture)}>
       <PictureCard picture={picture} />
       {!solved && (exiting === seated) && (seated ? <ArrowDown aria-hidden="true" /> : <ArrowUp aria-hidden="true" />)}
@@ -56,7 +56,7 @@ export function TripPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { r
     <div className="trip-vehicle">
       <div className="trip-seats" aria-label="Sedadla autobusu">
         {seats.map(passenger)}
-        {Array.from({ length: 5 - seats.length }, (_, i) => <span className="trip-seat-empty" key={i} />)}
+        {Array.from({ length: tripCapacity - seats.length }, (_, i) => <span className="trip-seat-empty" key={i} />)}
       </div>
       <PictureCard picture="tripBus" />
     </div>
@@ -77,40 +77,70 @@ export function BalancePuzzle({ round, solved, onCorrect, onWrong }: Feedback & 
   const [locations, setLocations] = useState(() => round.starting.flatMap((count, place) =>
     Array.from({ length: count }, () => place)));
   const [selected, setSelected] = useState<number | null>(null);
+  const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+  const pointer = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
+  const puzzle = useRef<HTMLDivElement>(null);
   const counts = round.starting.map((_, place) => locations.filter(location => location === place).length);
   const tilt = Math.max(-12, Math.min(12, (counts[1] - counts[0]) * 5));
-  const tiltStyle = { "--tilt": `${tilt}deg`, "--travel": `${tilt * 1.15}px` } as CSSProperties;
+  const tiltStyle = { "--tilt": `${tilt}deg`, "--travel": `${Math.sin(tilt * Math.PI / 180) * 33}%` } as CSSProperties;
 
-  function move(place: number) {
-    if (selected === null) return;
-    setLocations(locations.map((location, index) => selected === index ? place : location));
+  function move(place: number, apple = selected) {
+    if (apple === null) return;
+    setLocations(current => current.map((location, index) => apple === index ? place : location));
     setSelected(null);
+  }
+
+  function drop(event: PointerEvent<HTMLButtonElement>, apple: number) {
+    if (pointer.current?.id !== event.pointerId || !pointer.current.moved) return;
+    setGhost(null);
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-apple-place]");
+    if (target && puzzle.current?.contains(target)) move(Number(target.dataset.applePlace), apple);
   }
 
   function apples(place: number) {
     return locations.map((location, index) => location === place && (
       <button className="balance-apple" type="button" key={index} aria-label={`Jablko ${index + 1}`}
-        aria-pressed={selected === index} disabled={solved} onClick={() => setSelected(selected === index ? null : index)}>
+        aria-pressed={selected === index} disabled={solved}
+        onPointerDown={event => {
+          if (!event.isPrimary || event.button !== 0) return;
+          pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={event => {
+          const active = pointer.current;
+          if (!active || active.id !== event.pointerId || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+          if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 7) active.moved = true;
+          if (active.moved) setGhost({ x: event.clientX, y: event.clientY });
+        }}
+        onPointerUp={event => drop(event, index)} onLostPointerCapture={() => setGhost(null)}
+        onClick={event => {
+          if (event.detail && pointer.current?.moved) return;
+          setSelected(selected === index ? null : index);
+        }}>
         <PictureCard picture="apple" />
       </button>
     ));
   }
 
-  return <div className="new-puzzle balance-puzzle">
+  return <div className="new-puzzle balance-puzzle" ref={puzzle}>
     <div className="balance-machine" style={tiltStyle}>
-      <span className="balance-beam" aria-hidden="true" />
-      <span className="balance-stand" aria-hidden="true" />
-      {[0, 1].map(place => <div className="balance-pan" key={place}>
-        <button className="puzzle-drop-target" type="button" aria-label={`${place === 0 ? "Levá" : "Pravá"} miska, jablka: ${counts[place]}`}
-          disabled={solved} onClick={() => move(place)} />
-        {apples(place)}
+      <img className="balance-arm-art" src="./preschool/pictures/balanceArm.png" alt="" draggable={false} />
+      <img className="balance-base-art" src="./preschool/pictures/balanceBase.png" alt="" draggable={false} />
+      {[0, 1].map(place => <div className={`balance-pan pan-${place}`} key={place}>
+        <img src="./preschool/pictures/balanceBowl.png" alt="" draggable={false} />
+        <div className="balance-pan-apples" data-apple-place={place} data-crowded={counts[place] > 3}>
+          <button className="puzzle-drop-target" type="button" aria-label={`${place === 0 ? "Levá" : "Pravá"} miska, jablka: ${counts[place]}`}
+            disabled={solved} onClick={() => move(place)} />
+          {apples(place)}
+        </div>
       </div>)}
     </div>
-    <div className="feed-basket balance-basket">
+    <div className="balance-basket" data-apple-place={2}>
       <button className="puzzle-drop-target" type="button" aria-label="Dát jablko do košíku" disabled={solved} onClick={() => move(2)} />
       {apples(2)}
     </div>
-    {!solved && <Confirm label="Zazvonit a zkontrolovat váhu" bell disabled={false} onClick={() => {
+    {ghost && <span className="feed-drag" aria-hidden="true" style={{ left: ghost.x, top: ghost.y }}><PictureCard picture="apple" /></span>}
+    {!solved && <Confirm label="Zkontrolovat váhu" disabled={false} onClick={() => {
       setSelected(null);
       if (!counts[2] && counts[0] === counts[1]) onCorrect();
       else onWrong();
@@ -138,28 +168,20 @@ export function DoorPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { r
       {round.options.map((patch, i) => <button type="button" key={i}
         aria-label={`Medvídek: ${bearColors[patch.color].label}, ${bearPatterns[patch.pattern]}`}
         aria-pressed={selected === i} disabled={solved} onClick={() => setSelected(i)}>
-        <PictureCard picture="logicBear" />
-        <PatternSwatch color={patch.color} pattern={patch.pattern} />
+        <span className="bear-art">
+          <PictureCard picture="logicBear" />
+          <PatternSwatch color={patch.color} pattern={patch.pattern} />
+        </span>
       </button>)}
     </div>
-    {!solved && <Confirm label="Zazvonit u dveří" bell disabled={selected === null}
+    {!solved && <Confirm label="Zkontrolovat medvídka" disabled={selected === null}
       onClick={() => selected !== null && (matchingBear(round.clue, round.options[selected]) ? onCorrect() : onWrong())} />}
-  </div>;
-}
-
-function PlaceClue({ house, index, size }: { house: StreetHouse; index: number; size: number }) {
-  return <div className="street-clue" aria-label={`${pictureLabel(house)} patří na místo ${index + 1} zleva`}>
-    <PictureCard picture={house} />
-    <span className="street-mini" aria-hidden="true">
-      {Array.from({ length: size }, (_, i) => <i key={i} className={index === i ? "marked" : ""} />)}
-    </span>
   </div>;
 }
 
 export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { round: StreetRound }) {
   const [selected, setSelected] = useState<StreetHouse | null>(null);
   const [slots, setSlots] = useState<(StreetHouse | null)[]>(() => round.houses.map(() => null));
-  const tree = <span className="street-tree"><PictureCard picture="streetTree" /></span>;
 
   function place(index: number) {
     if (selected) {
@@ -172,33 +194,23 @@ export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & {
   }
 
   return <div className="new-puzzle street-puzzle">
-    <div className="street-clues" aria-label="Nápovědy">
-      <PlaceClue house={round.anchor} index={round.anchorIndex} size={slots.length} />
-      <div className="street-clue street-neighbor"
-        aria-label={`${pictureLabel(round.neighbor)} patří vedle domečku ${pictureLabel(round.anchor)} směrem ke stromu`}>
-        <PictureCard picture={round.treeLeft ? round.neighbor : round.anchor} />
-        {round.treeLeft ? <ArrowLeft aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
-        <PictureCard picture={round.treeLeft ? round.anchor : round.neighbor} />
-      </div>
-      {round.farHouse && <PlaceClue house={round.farHouse} index={streetFarIndex(round)} size={slots.length} />}
+    <div className="street-track street-model" aria-label="Vzor ulice">
+      {round.model.map(house => <span key={house}><PictureCard picture={house} /></span>)}
     </div>
     <div className="street-track" aria-label="Ulice">
-      {round.treeLeft && tree}
       {slots.map((house, i) => <button type="button" className="street-slot" key={i}
         aria-label={`Místo ${i + 1}${house ? `, ${pictureLabel(house)}` : ", prázdné"}`} disabled={solved}
         aria-pressed={!!house && selected === house} onClick={() => place(i)}>
         {house && <PictureCard picture={house} />}
       </button>)}
-      {!round.treeLeft && tree}
     </div>
     <div className="puzzle-choice-row street-houses" aria-label="Volné domečky">
       {round.houses.map(house => <button type="button" key={house} aria-pressed={selected === house} disabled={solved || slots.includes(house)}
         onClick={() => setSelected(selected === house ? null : house)}><PictureCard picture={house} /></button>)}
     </div>
-    {!solved && <Confirm label="Zazvonit a zkontrolovat ulici" bell disabled={slots.includes(null)} onClick={() => {
+    {!solved && <Confirm label="Zkontrolovat ulici" disabled={slots.includes(null)} onClick={() => {
       setSelected(null);
-      if (slots[round.anchorIndex] === round.anchor && slots[streetNeighborIndex(round)] === round.neighbor &&
-          (!round.farHouse || slots[streetFarIndex(round)] === round.farHouse)) onCorrect();
+      if (slots.every((house, i) => house === round.model[i])) onCorrect();
       else onWrong();
     }} />}
   </div>;

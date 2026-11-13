@@ -40,7 +40,7 @@ export const preschoolGames = {
   trip: { title: "Výlet autobusem", picture: "tripBus", instruction: "Škrtni vystupující, přidej čekající a zakroužkuj správný počet teček." },
   balance: { title: "Vyvaž váhu", picture: "balanceScale", instruction: "Rozděl všechna jablka tak, aby jich bylo na obou miskách stejně." },
   door: { title: "Kdo bydlí v domečku?", picture: "logicBear", instruction: "Zakroužkuj medvídka, který má stejnou barvu i stejný vzorek jako nápověda." },
-  street: { title: "Domečky v řadě", picture: "streetRed", instruction: "Spoj domečky s místy podle nápovědy. Šipka míří k sousednímu místu u stromu." },
+  street: { title: "Domečky v řadě", picture: "streetRed", instruction: "Podle horní řady spoj každý volný domeček s jeho místem v dolní řadě." },
 } as const;
 export type PreschoolGame = keyof typeof preschoolGames;
 export const preschoolGameIds = Object.keys(preschoolGames) as PreschoolGame[];
@@ -74,17 +74,15 @@ export type BearPatch = { color: BearColor; pattern: BearPattern };
 export type DoorRound = { kind: "door"; clue: BearPatch; options: BearPatch[] };
 export type StreetHouse = "streetRed" | "streetBlue" | "streetGold" | "streetPurple";
 export type StreetRound = {
-  kind: "street"; houses: StreetHouse[]; treeLeft: boolean;
-  anchor: StreetHouse; anchorIndex: number; neighbor: StreetHouse; farHouse?: StreetHouse;
+  kind: "street"; houses: StreetHouse[]; model: StreetHouse[];
 };
 export type GraphicRound = FeedRound | BuildRound | MazeRound | MoreRound | TripRound | BalanceRound | DoorRound | StreetRound;
 export type PreschoolRound = ChoiceRound | StoryRound | GraphicRound;
 
 export const tripCount = (round: TripRound) => round.stay.length + round.waiting.length;
-export const dotLayouts: Record<number, number[]> = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9] };
+export const tripCapacity = 6;
+export const dotLayouts: Record<number, number[]> = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
 export const matchingBear = (a: BearPatch, b: BearPatch) => a.color === b.color && a.pattern === b.pattern;
-export const streetNeighborIndex = (round: StreetRound) => round.anchorIndex + (round.treeLeft ? -1 : 1);
-export const streetFarIndex = (round: StreetRound) => round.treeLeft ? round.houses.length - 1 : 0;
 
 function shuffle<T>(values: readonly T[]): T[] {
   const shuffled = [...values];
@@ -203,13 +201,17 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
       }));
     }
     case "trip":
-      return ([[1, 0, 1], [2, 1, 1], [2, 1, 2], [3, 1, 2], [1, 2, 2]] as const).map(([stay, exit, waiting]) => {
+      return shuffle([tripCapacity, ...shuffle([1, 2, 3, 4, 5]).slice(0, 4)]).map(answer => {
+        const counts = Array.from({ length: answer + 1 }, (_, stay) =>
+          [0, 1, 2].map(exit => ({ stay, exit, waiting: answer - stay }))).flat()
+          .filter(({ stay, exit, waiting }) => stay + exit >= 1 && stay + exit <= tripCapacity &&
+            waiting <= 2 && exit + waiting >= 1 && stay + exit + waiting <= animals.length);
+        const [{ stay, exit, waiting }] = shuffle(counts);
         const riders = shuffle(animals);
-        const answer = stay + waiting;
         return {
           kind: "trip", stay: riders.slice(0, stay), exit: riders.slice(stay, stay + exit),
           waiting: riders.slice(stay + exit, stay + exit + waiting),
-          options: shuffle(answer === 5 ? [3, 4, 5] : [answer - 1, answer, answer + 1]),
+          options: shuffle(Array.from({ length: 3 }, (_, i) => Math.min(4, Math.max(1, answer - 1)) + i)),
         };
       });
     case "balance":
@@ -230,14 +232,10 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
     }
     case "street":
       return Array.from({ length: 5 }, (_, index) => {
-        const size = index < 2 ? 3 : 4;
-        const [anchor, neighbor, farHouse, spare] = shuffle(streetHouses);
-        const treeLeft = Math.random() < .5;
-        return {
-          kind: "street", treeLeft, anchor, anchorIndex: size === 3 || treeLeft ? 1 : 2, neighbor,
-          farHouse: size === 4 ? farHouse : undefined,
-          houses: shuffle(size === 3 ? [anchor, neighbor, spare] : [anchor, neighbor, farHouse, spare]),
-        };
+        const model = shuffle(streetHouses).slice(0, index < 2 ? 3 : 4);
+        const houses = shuffle(model);
+        if (houses.every((house, i) => house === model[i])) houses.push(houses.shift()!);
+        return { kind: "street", houses, model };
       });
   }
 }
