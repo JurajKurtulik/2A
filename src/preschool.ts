@@ -19,6 +19,7 @@ export const pictures = {
   house: "domeček", tripBus: "výletní autobus", balanceScale: "váha", logicBear: "medvídek",
   streetRed: "červený domeček", streetBlue: "modrý domeček", streetGold: "žlutý domeček",
   streetPurple: "fialový domeček", streetTree: "strom",
+  streetTeal: "tyrkysový domeček", streetPink: "růžový domeček",
   pizzaRed: "salámová pizza", pizzaWhite: "houbová pizza", pizzaGreen: "pizza s olivami",
   sliceRed: "salámový dílek", sliceWhite: "houbový dílek", sliceGreen: "olivový dílek",
   pizzaCorn: "pizza s kukuřicí", sliceCorn: "dílek s kukuřicí",
@@ -32,6 +33,7 @@ export const pictures = {
   pizzaBlueberry: "pizza s borůvkami", sliceBlueberry: "dílek s borůvkami",
   pizzaZucchini: "pizza s cuketou", sliceZucchini: "dílek s cuketou",
   iceBall: "kopeček zmrzliny", muffin: "muffin",
+  brickRed: "červená kostička", shadowMascot: "veverka", pieceMascot: "liška",
 } as const;
 type GamePicture = keyof typeof pictures;
 type StoryPicture = ReturnType<typeof storyFrameId>;
@@ -59,8 +61,20 @@ export const preschoolGames = {
   iceCream: { title: "Zmrzlina na přání", picture: "iceBall", instruction: "Zakroužkuj kartičku, na které je tolik kopečků, kolik ukazuje číslo." },
   listen: { title: "Poslechni a přesuň", picture: "muffin", instruction: "Dospělý přečte pokyn. Dítě spojí muffin se správným talířem." },
   crowd: { title: "Kterých zvířátek je víc?", picture: "dog", instruction: "Zakroužkuj zvířátko, kterých je nahoře víc." },
+  bricks: { title: "Kolik je kostiček?", picture: "brickRed", instruction: "Spočítej dílky stavby a zakroužkuj správné číslo." },
+  shadow: { title: "Najdi stín", picture: "shadowMascot", instruction: "Zakroužkuj stín, který má stejný tvar jako obrázek." },
+  piece: { title: "Najdi chybějící dílek", picture: "pieceMascot", instruction: "Zakroužkuj dílek, který doplní prázdné místo." },
 } as const;
 export type PreschoolGame = keyof typeof preschoolGames;
+export const preschoolLevels = {
+  story: ["3 obrázky", "5 obrázků"],
+  pattern: ["Kratší vzory", "Složitější vzory"],
+  build: ["Malá plocha", "Velká plocha"],
+  absent: ["3 obrázky", "6 obrázků"],
+  street: ["3 až 4 domky", "5 až 6 domků"],
+} as const;
+export type LeveledGame = keyof typeof preschoolLevels;
+export const hasPreschoolLevels = (game: PreschoolGame): game is LeveledGame => Object.hasOwn(preschoolLevels, game);
 export const preschoolGameIds = Object.keys(preschoolGames) as PreschoolGame[];
 export const preschoolTopic = (game: PreschoolGame) => `preschool-${game}`;
 
@@ -71,9 +85,10 @@ export const shapes = {
   circle: { label: "kruh", color: "#e18d31" },
   square: { label: "čtverec", color: "#4d89c7" },
   triangle: { label: "trojúhelník", color: "#bf5b74" },
+  diamond: { label: "kosočtverec", color: "#7154a8" },
 } as const;
 export type Shape = keyof typeof shapes;
-export type BuildRound = { kind: "build"; columns: number; cells: (Shape | null)[] };
+export type BuildRound = { kind: "build"; columns: number; cells: (Shape | null)[]; palette: Shape[] };
 export type MazeRound = { kind: "maze"; map: readonly string[]; start: number; goal: number };
 export type MoreRound = { kind: "more"; picture: Picture; counts: [number, number] };
 export type TripRound = {
@@ -90,7 +105,7 @@ export type BearColor = keyof typeof bearColors;
 export type BearPattern = keyof typeof bearPatterns;
 export type BearPatch = { color: BearColor; pattern: BearPattern };
 export type DoorRound = { kind: "door"; clue: BearPatch; options: BearPatch[] };
-export type StreetHouse = "streetRed" | "streetBlue" | "streetGold" | "streetPurple";
+export type StreetHouse = "streetRed" | "streetBlue" | "streetGold" | "streetPurple" | "streetTeal" | "streetPink";
 export type StreetRound = {
   kind: "street"; houses: StreetHouse[]; model: StreetHouse[];
 };
@@ -109,10 +124,14 @@ export const listeningPrompts = {
   listenMiddle: "Polož muffin na prostřední talíř.",
   listenBlue: "Polož muffin na modrý talíř.",
   listenGreen: "Polož muffin na zelený talíř.",
+  listenPink: "Polož muffin na růžový talíř.",
 };
 export const plateColors = { pink: "#dc84a9", blue: "#74a8d0", green: "#8bb973" };
 export type ListenRound = { kind: "listen"; cue: keyof typeof listeningPrompts; plates: (keyof typeof plateColors)[]; answer: number };
-export type GraphicRound = FeedRound | BuildRound | MazeRound | MoreRound | TripRound | BalanceRound | DoorRound | StreetRound | MatchRound | IceCreamRound | ListenRound;
+export type VisualRound = { kind: "bricks" | "shadow" | "piece"; variant: number; options: number[]; answer: number };
+export const visualPath = (kind: VisualRound["kind"], variant: number, option?: number) =>
+  `./preschool/visual/${kind}-${variant}${option === undefined ? "" : `-${option}`}.png`;
+export type GraphicRound = FeedRound | BuildRound | MazeRound | MoreRound | TripRound | BalanceRound | DoorRound | StreetRound | MatchRound | IceCreamRound | ListenRound | VisualRound;
 export type PreschoolRound = ChoiceRound | StoryRound | GraphicRound;
 
 export const tripCount = (round: TripRound) => round.stay.length + round.waiting.length;
@@ -192,15 +211,23 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         return { kind: "choice", prompt: [], options: shuffle([...shuffle(family).slice(0, 3), answer]), answer };
       });
     }
-    case "pattern":
+    case "pattern": {
+      const patterns = shuffle([[0,1,2,0], [0,1,1,2], [0,0,1,2], [0,1,2,1], [0,1,0,2], [0,1,2,2]]);
       return Array.from({ length: 5 }, (_, index) => {
         const [first, second, third] = shuffle(patternPictures);
+        if (level === 2) {
+          const pool = [first, second, third];
+          const unit = patterns[index].map(i => pool[i]);
+          const tail = index % 3 + 1;
+          return { kind: "choice", prompt: [...unit, ...unit, ...unit.slice(0, tail)], options: shuffle(pool), answer: unit[tail] };
+        }
         const unit = index < 3 ? [first, second] : [first, first, second];
         return {
           kind: "choice" as const, prompt: [...unit, ...unit, ...unit],
           options: shuffle([first, second, third]), answer: first,
         };
       });
+    }
     case "pair":
       return shuffle(socks).slice(0, 5).map(answer => ({
         kind: "choice" as const, prompt: [answer],
@@ -220,12 +247,12 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
     case "story":
       return storyRounds(level, recentStories);
     case "build":
-      return [2, 2, 3, 4, 5].map((count, index) => {
-        const columns = index < 2 ? 2 : 3;
-        const palette = shuffle(Object.keys(shapes) as Shape[]);
+      return shuffle(level === 2 ? [6, 7, 8, 9, 10] : [2, 2, 3, 4, 5]).map(count => {
+        const columns = level === 2 ? 4 : count <= 2 ? 2 : 3;
+        const palette = shuffle((Object.keys(shapes) as Shape[]).filter(shape => level === 2 || shape !== "diamond"));
         const pieces = Array.from({ length: count }, (_, i) => palette[i % palette.length]);
-        const cells = shuffle([...pieces, ...Array<null>(columns * 2 - count).fill(null)]);
-        return { kind: "build", columns, cells };
+        const cells = shuffle([...pieces, ...Array<null>(columns * (level === 2 ? 3 : 2) - count).fill(null)]);
+        return { kind: "build", columns, cells, palette };
       });
     case "maze":
       return mazes.map(map => ({ kind: "maze", map, start: map.join("").indexOf("S"), goal: map.join("").indexOf("G") }));
@@ -267,8 +294,8 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
       });
     }
     case "street":
-      return Array.from({ length: 5 }, (_, index) => {
-        const model = shuffle(streetHouses).slice(0, index < 2 ? 3 : 4);
+      return shuffle(level === 2 ? [5, 5, 6, 6, 6] : [3, 3, 4, 4, 4]).map(size => {
+        const model = shuffle(level === 2 ? [...streetHouses, "streetTeal", "streetPink"] as const : streetHouses).slice(0, size);
         const houses = shuffle(model);
         if (houses.every((house, i) => house === model[i])) houses.push(houses.shift()!);
         return { kind: "street", houses, model };
@@ -290,6 +317,10 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
       });
     }
     case "absent":
+      if (level === 2) return Array.from({ length: 5 }, (_, i) => {
+        const [answer, ...pool] = shuffle([animals, fruit][i % 2]);
+        return { kind: "choice", prompt: pool, options: shuffle([answer, ...pool.slice(0, 3)]), answer };
+      });
       return shuffle(oddGroups).concat(oddGroups[0]).map(({ family }) => {
         const [first, second, third, answer] = shuffle(family);
         return { kind: "choice", prompt: [first, second, third], options: shuffle([first, third, answer]), answer };
@@ -300,10 +331,18 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         options: shuffle(Array.from({ length: 3 }, (_, i) => Math.max(1, Math.min(8, count - 1)) + i)),
       }));
     case "listen":
-      return shuffle(Object.keys(listeningPrompts) as ListenRound["cue"][]).map(cue => {
+      return shuffle(["listenPink", ...shuffle((Object.keys(listeningPrompts) as ListenRound["cue"][]).filter(cue => cue !== "listenPink")).slice(0, 4)] as ListenRound["cue"][]).map(cue => {
         const plates = shuffle(Object.keys(plateColors) as ListenRound["plates"]);
-        const answer = { listenLeft: 0, listenRight: 2, listenMiddle: 1, listenBlue: plates.indexOf("blue"), listenGreen: plates.indexOf("green") }[cue];
+        const answer = { listenLeft: 0, listenRight: 2, listenMiddle: 1, listenBlue: plates.indexOf("blue"), listenGreen: plates.indexOf("green"), listenPink: plates.indexOf("pink") }[cue];
         return { kind: "listen", cue, plates, answer };
+      });
+    case "bricks":
+    case "shadow":
+    case "piece":
+      return shuffle(Array.from({ length: 30 }, (_, i) => i + 1)).slice(0, 5).map(variant => {
+        const answer = game === "bricks" ? (variant - 1) % 10 + 1 : 0;
+        const start = Math.min(7, Math.max(1, answer - 1));
+        return { kind: game, variant, answer, options: shuffle(game === "bricks" ? [start, start + 1, start + 2, start + 3] : [0, 1, 2]) };
       });
     case "crowd":
       return Array.from({ length: 5 }, () => {

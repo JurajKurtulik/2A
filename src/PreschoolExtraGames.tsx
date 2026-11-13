@@ -1,8 +1,24 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { PictureCard } from "./PreschoolPuzzles";
-import { plateColors, type IceCreamRound, type ListenRound } from "./preschool";
+import { plateColors, visualPath, type IceCreamRound, type ListenRound, type VisualRound } from "./preschool";
 
 type Feedback = { solved: boolean; onCorrect: () => void; onWrong: () => void };
+
+export function VisualPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { round: VisualRound }) {
+  const [choice, setChoice] = useState<number>();
+  return <>
+    <img className="preschool-visual-main" src={visualPath(round.kind, round.variant)} draggable={false}
+      alt={round.kind === "bricks" ? "Stavba z barevných kostiček" : round.kind === "piece" ? "Obrázek s prázdným místem" : "Postavička, ke které hledáš stín"} />
+    <div className="preschool-visual-options">
+      {round.options.map((option, index) => <button type="button" key={option} disabled={solved}
+        aria-label={round.kind === "bricks" ? String(option) : `Možnost ${index + 1}`}
+        className={choice === option ? solved ? "correct" : "incorrect" : undefined}
+        onClick={() => { setChoice(option); if (option === round.answer) onCorrect(); else onWrong(); }}>
+        {round.kind === "bricks" ? option : <img src={visualPath(round.kind, round.variant, option)} alt="" draggable={false} />}
+      </button>)}
+    </div>
+  </>;
+}
 
 export function IceCreamPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { round: IceCreamRound }) {
   const [choice, setChoice] = useState<number>();

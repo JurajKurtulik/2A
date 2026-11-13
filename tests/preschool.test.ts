@@ -37,7 +37,7 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
       if (round.kind === "listen") {
         assert.equal(round.plates.length, new Set(round.plates).size);
         assert.equal(round.answer, { listenLeft: 0, listenRight: 2, listenMiddle: 1,
-          listenBlue: round.plates.indexOf("blue"), listenGreen: round.plates.indexOf("green") }[round.cue]);
+          listenBlue: round.plates.indexOf("blue"), listenGreen: round.plates.indexOf("green"), listenPink: round.plates.indexOf("pink") }[round.cue]);
         continue;
       }
       if (round.kind === "match") {
@@ -116,6 +116,11 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
         assert.ok(seen.has(round.goal), "The house must be reachable");
         continue;
       }
+      if (round.kind !== "choice") {
+        assert.equal(round.options.filter(option => option === round.answer).length, 1);
+        assert.ok(existsSync(`public/preschool/visual/${round.kind}-${round.variant}.png`));
+        continue;
+      }
       assert.equal(new Set(round.options).size, round.options.length);
       assert.ok([...round.prompt, ...round.options].every(picture => Object.hasOwn(pictures, picture)));
       assert.equal(round.options.filter(option => option === round.answer).length, 1);
@@ -127,6 +132,22 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
       }
     }
   }
+});
+
+test("New visual banks contain thirty complete variants and second levels are playable", () => {
+  for (const game of ["bricks", "shadow", "piece"] as const) {
+    for (let variant = 1; variant <= 30; variant++) {
+      assert.ok(existsSync(`public/preschool/visual/${game}-${variant}.png`));
+      if (game !== "bricks") {
+        for (const option of [0, 1, 2]) assert.ok(existsSync(`public/preschool/visual/${game}-${variant}-${option}.png`));
+      }
+    }
+  }
+  assert.ok(preschoolRounds("listen").some(round => round.kind === "listen" && round.cue === "listenPink"));
+  assert.ok(preschoolRounds("build", 2).every(round => round.kind === "build" && round.cells.length === 12 && round.cells.includes("diamond")));
+  assert.ok(preschoolRounds("absent", 2).every(round => round.kind === "choice" && round.prompt.length === 6 && !round.prompt.includes(round.answer)));
+  assert.ok(preschoolRounds("pattern", 2).every(round => round.kind === "choice" && round.prompt.length >= 9 && round.answer === round.prompt[round.prompt.length % 4]));
+  assert.ok(preschoolRounds("street", 2).every(round => round.kind === "street" && round.model.length >= 5 && round.model.length <= 6));
 });
 
 test("Both story levels use the full illustrated bank before repeating recent stories", () => {

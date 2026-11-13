@@ -4,7 +4,8 @@ Interaktivní procvičování pro předškoláky a 1.–9. třídu. Aktuální u
 
 ## Co aplikace umí
 
-- Sedmnáct pětikolových obrázkových her pro předškoláky. Český pokyn zazní při spuštění hry a lze ho zopakovat reproduktorem. Správnou odpověď doprovází cinknutí a chybu krátké povzbuzení. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
+- Dvacet pětikolových obrázkových her pro předškoláky. Český pokyn zazní při spuštění hry a lze ho zopakovat reproduktorem. Správnou odpověď doprovází cinknutí a chybu krátké povzbuzení. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
+- **Kolik je kostiček?**, **Najdi stín** a **Najdi chybějící dílek** mají po 30 předlohách. U vzorů, skládání podle obrázku, hledání chybějícího obrázku a domečků lze zvolit druhou úroveň i v sestavovači testu.
 - V **Co k čemu patří?** děti přiřazují dílky podle oblohy. V každé hře se vystřídá všech třináct druhů pizz. Každé kolo má tři dvojice a v sousedních kolech se žádná pizza neopakuje.
 - **Předškolácký test** v hlavní navigaci kombinuje vybrané hry a počty úloh. Stejná varianta se online střídá po jednotlivých úlohách a na papíře se seskupuje podle hry. Dokončený online test se ukládá do historie.
 - **Výlet autobusem** procvičuje počítání do šesti po nástupu a výstupu zvířátek v promíchaných kolech. Ve hře **Vyvaž váhu** děti přetahují jablka do stejně těžkých misek. Ve hře **Kdo bydlí v domečku?** hledají medvídka podle barvy i vzorku. V **Domečcích v řadě** skládají ulici podle velké obrázkové předlohy.

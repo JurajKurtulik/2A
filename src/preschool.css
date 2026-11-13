@@ -192,7 +192,7 @@ button.trip-rider { cursor: pointer; }
 .pattern-swatch.stripes { background-image: repeating-linear-gradient(-42deg, var(--patch) 0 4px, transparent 4px 8px); }
 .pattern-swatch.checker { background-image: conic-gradient(var(--patch) 25%, transparent 0 50%, var(--patch) 0 75%, transparent 0); background-size: 12px 12px; }
 .bear-options button > img, .street-houses img, .street-slot img { width: 100%; height: 100%; object-fit: contain; }
-.bear-options button { width: clamp(49px, 16vw, 86px); }
+.bear-options button { width: clamp(59px, 19vw, 110px); }
 .bear-art { width: 100%; height: 100%; position: relative; display: grid; place-items: center; }
 .bear-art img { width: 100%; height: 100%; object-fit: contain; }
 .bear-art .pattern-swatch { position: absolute; left: 50%; top: 64.7%; width: 36%; height: 36%; border-radius: 50%; transform: translate(-50%, -50%); background-size: 8px 8px; }
@@ -308,3 +308,12 @@ button.trip-rider { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .preschool-game { transition: none; }
 }
+
+.preschool-shape.diamond { clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%); }
+.preschool-shape-palette button { touch-action: none; }
+.preschool-visual-main { width: min(100%, 325px); aspect-ratio: 1; object-fit: contain; }
+.preschool-visual-options { display: flex; justify-content: center; gap: 8px; width: 100%; }
+.preschool-visual-options button { width: clamp(56px, 22vw, 130px); aspect-ratio: 1; background: #fff; border: 2px solid #c4d9c8; border-radius: 15px; font-size: 1.75rem; font-weight: 800; color: #244b39; }
+.preschool-visual-options img { width: 100%; height: 100%; object-fit: contain; }
+.preschool-visual-options .incorrect { border-color: #b26a47; }
+.preschool-visual-options .correct { border-color: #39805b; }
