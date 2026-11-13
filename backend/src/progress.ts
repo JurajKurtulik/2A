@@ -99,6 +99,9 @@ export class ProfileAuth {
       throw new ApiError(401, 'authorization_required');
     return id;
   }
+  profileName(id: string) {
+    return this.config.accounts.find(account => account.id === id)?.name;
+  }
 }
 
 export async function progressJson(request: HttpRequest, limit: number): Promise<unknown> {

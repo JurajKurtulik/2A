@@ -1,3 +1,4 @@
+import { VoiceLesson } from "./VoiceLesson";
 import { HandwritingPractice } from "./HandwritingPractice";
 import { PreschoolGames } from "./PreschoolGames";
 import { preschoolGames, preschoolTopic } from "./preschool";
@@ -551,8 +552,11 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
     ["math", "Matematika", Calculator],
     ["czech", "Čeština", BookOpen],
     ["tests", isPreschool ? "Předškolácký test" : "Zkus si písemku", Sparkles],
+    ["voice", "Angličtina nahlas", Sparkles],
     ["progress", "Moje pokroky", Trophy],
-  ] as const).filter(([id]) => !isPreschool || id === "home" || id === "progress" || id === "tests");
+  ] as const).filter(([id]) => id === "voice"
+    ? import.meta.env.VITE_VOICE_PILOT === "true"
+    : !isPreschool || id === "home" || id === "progress" || id === "tests");
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -629,6 +633,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
               po zavření nezůstane uložený.
             </div>
           )}
+          {page === "voice" && <VoiceLesson login={login} />}
           {isPreschool && (page === "home" || page === "tests") && (
             <PreschoolGames
               key={page}
@@ -658,7 +663,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
           )}
           {!isPreschool && !session &&
             !currentTopics.length &&
-            page !== "progress" &&
+            page !== "progress" && page !== "voice" &&
             emptyGrade()}
           {!session && currentTopics.length > 0 && page === "home" && (
             <>

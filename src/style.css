@@ -2656,3 +2656,10 @@ footer {
     white-space: normal;
   }
 }
+
+.voice-lesson { max-width: 680px; margin-inline: auto; padding: clamp(18px, 4vw, 38px); background: #f5faef; border: 1px solid #bfd2bc; border-radius: 26px; }
+.theme-oliver .voice-lesson { background: #edf5ff; border-color: #b6cce5; }
+.voice-lesson fieldset { border: 1px solid #bfd2bc; border-radius: 14px; padding: 12px; margin: 18px 0; min-width: 0; }
+.voice-topics, .voice-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.voice-options { flex-direction: column; margin-bottom: 14px; }
+.voice-options input[type=password] { padding: 8px; border: 1px solid #829785; border-radius: 8px; max-width: 100%; }
