@@ -20,6 +20,13 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
     } else assert.ok(existsSync(`public/preschool/audio/${game}.wav`), game);
     const rounds = preschoolRounds(game);
     assert.equal(rounds.length, 5);
+    if (game === "match") {
+      const pizzas = rounds.flatMap(round => round.kind === "match" ? round.pizzas : []);
+      assert.equal(new Set(pizzas).size, 13);
+      assert.equal(new Set(pizzas.slice(0, 12)).size, 12);
+      assert.equal(pizzas.length, 15);
+      assert.ok(pizzas.slice(12).every(pizza => !pizzas.slice(9, 12).includes(pizza)));
+    }
     if (game === "trip") {
       const totals = rounds.flatMap(round => round.kind === "trip" ? [tripCount(round)] : []);
       assert.equal(new Set(totals).size, 5);

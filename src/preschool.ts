@@ -21,6 +21,16 @@ export const pictures = {
   streetPurple: "fialový domeček", streetTree: "strom",
   pizzaRed: "salámová pizza", pizzaWhite: "houbová pizza", pizzaGreen: "pizza s olivami",
   sliceRed: "salámový dílek", sliceWhite: "houbový dílek", sliceGreen: "olivový dílek",
+  pizzaCorn: "pizza s kukuřicí", sliceCorn: "dílek s kukuřicí",
+  pizzaBroccoli: "pizza s brokolicí", sliceBroccoli: "dílek s brokolicí",
+  pizzaPineapple: "pizza s ananasem", slicePineapple: "dílek s ananasem",
+  pizzaEgg: "pizza s vejcem", sliceEgg: "dílek s vejcem",
+  pizzaShrimp: "pizza s krevetami", sliceShrimp: "dílek s krevetami",
+  pizzaOnion: "pizza s cibulí", sliceOnion: "dílek s cibulí",
+  pizzaBasil: "pizza s bazalkou", sliceBasil: "dílek s bazalkou",
+  pizzaPepper: "pizza s paprikou", slicePepper: "dílek s paprikou",
+  pizzaBlueberry: "pizza s borůvkami", sliceBlueberry: "dílek s borůvkami",
+  pizzaZucchini: "pizza s cuketou", sliceZucchini: "dílek s cuketou",
   iceBall: "kopeček zmrzliny", muffin: "muffin",
 } as const;
 type GamePicture = keyof typeof pictures;
@@ -85,7 +95,13 @@ export type StreetRound = {
   kind: "street"; houses: StreetHouse[]; model: StreetHouse[];
 };
 export type MatchRound = { kind: "match"; pizzas: Picture[]; slices: Picture[] };
-export const pizzaPairs: readonly [Picture, Picture][] = [["pizzaRed","sliceRed"],["pizzaWhite","sliceWhite"],["pizzaGreen","sliceGreen"]];
+export const pizzaPairs: readonly [Picture, Picture][] = [
+  ["pizzaRed", "sliceRed"], ["pizzaWhite", "sliceWhite"], ["pizzaGreen", "sliceGreen"],
+  ["pizzaCorn", "sliceCorn"], ["pizzaBroccoli", "sliceBroccoli"], ["pizzaPineapple", "slicePineapple"],
+  ["pizzaEgg", "sliceEgg"], ["pizzaShrimp", "sliceShrimp"], ["pizzaOnion", "sliceOnion"],
+  ["pizzaBasil", "sliceBasil"], ["pizzaPepper", "slicePepper"], ["pizzaBlueberry", "sliceBlueberry"],
+  ["pizzaZucchini", "sliceZucchini"],
+];
 export type IceCreamRound = { kind: "iceCream"; count: number; options: number[] };
 export const listeningPrompts = {
   listenLeft: "Polož muffin na levý talíř.",
@@ -257,13 +273,22 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         if (houses.every((house, i) => house === model[i])) houses.push(houses.shift()!);
         return { kind: "street", houses, model };
       });
-    case "match":
+    case "match": {
+      const deck = shuffle(pizzaPairs);
+      let previous: typeof pizzaPairs = [];
       return Array.from({ length: 5 }, () => {
-        const pizzas = shuffle(pizzaPairs.map(([pizza]) => pizza));
-        const slices = shuffle(pizzaPairs.map(([, slice]) => slice));
-        if (pizzas.every((pizza, i) => pizzaPairs.some(pair => pair[0] === pizza && pair[1] === slices[i]))) slices.push(slices.shift()!);
+        const pairs = deck.splice(0, 3);
+        if (pairs.length < 3) {
+          const fresh = pizzaPairs.filter(pair => !pairs.includes(pair) && !previous.includes(pair));
+          pairs.push(...shuffle(fresh).slice(0, 3 - pairs.length));
+        }
+        previous = pairs;
+        const pizzas = shuffle(pairs.map(([pizza]) => pizza));
+        const slices = shuffle(pairs.map(([, slice]) => slice));
+        if (pizzas.every((pizza, i) => pairs.some(pair => pair[0] === pizza && pair[1] === slices[i]))) slices.push(slices.shift()!);
         return { kind: "match", pizzas, slices };
       });
+    }
     case "absent":
       return shuffle(oddGroups).concat(oddGroups[0]).map(({ family }) => {
         const [first, second, third, answer] = shuffle(family);
