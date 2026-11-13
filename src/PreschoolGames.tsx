@@ -3,8 +3,9 @@ import { ArrowRight, ChevronLeft, Check, RotateCcw, Star } from "lucide-react";
 import { storyBanks, type StoryLevel } from "./banks/preschool-stories";
 import {
   preschoolGameIds, preschoolGames, preschoolRounds,
-  type PreschoolGame, type PreschoolRound,
+  preschoolTopic, type PreschoolGame, type PreschoolRound,
 } from "./preschool";
+import { makePreschoolTest, maxPreschoolGameItems, maxPreschoolTestItems, type PreschoolResult, type PreschoolTestCounts } from "./preschool-test";
 import { BuildPuzzle, MazePuzzle, MorePuzzle, PictureCard, ShapePiece, StoryPuzzle } from "./PreschoolPuzzles";
 import { FeedPuzzle } from "./FeedPuzzle";
 import { BalancePuzzle, DoorPuzzle, StreetPuzzle, TripPuzzle } from "./PreschoolNumberGames";
@@ -17,15 +18,22 @@ type Play = {
   score: number;
   finished: boolean;
   level: StoryLevel;
+  test?: ReturnType<typeof makePreschoolTest>;
+  results?: PreschoolResult[];
 };
 
-export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }: {
+export function PreschoolGames({ onComplete, onTestComplete, recentStories = [], onStoriesSeen }: {
   onComplete: (game: PreschoolGame, score: number, total: number, level: StoryLevel) => void;
   recentStories?: readonly string[];
   onStoriesSeen: (ids: string[]) => void;
+  onTestComplete: (score: number, total: number, topics: PreschoolResult[]) => void;
 }) {
   const [play, setPlay] = useState<Play | null>(null);
   const [chooseStory, setChooseStory] = useState(false);
+  const [builder, setBuilder] = useState(false);
+  const [counts, setCounts] = useState<PreschoolTestCounts>({});
+  const [testLevel, setTestLevel] = useState<StoryLevel>(1);
+  const [variant, setVariant] = useState<ReturnType<typeof makePreschoolTest> | null>(null);
   const [wrong, setWrong] = useState<string[]>([]);
   const [solved, setSolved] = useState(false);
   const [audioError, setAudioError] = useState(false);
@@ -34,7 +42,7 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
   const audio = useRef<HTMLAudioElement | null>(null);
   const transition = useRef<HTMLElement | null>(null);
   const previousScreen = useRef("");
-  const screen = play ? `${play.game}-${play.index}-${play.finished}` : chooseStory ? "story-levels" : "menu";
+  const screen = play ? `${play.game}-${play.index}-${play.finished}` : builder ? "builder" : chooseStory ? "story-levels" : "menu";
   useEffect(() => {
     if (previousScreen.current) transition.current?.focus();
     previousScreen.current = screen;
@@ -46,7 +54,7 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
 
   function playSound(sound: PreschoolGame | "correct" | "retry" | "crunch") {
     if (sound !== "crunch") setAudioError(false);
-    const src = new URL(`./preschool/audio/${sound}.wav`, document.baseURI).href;
+    const src = new URL(`./preschool/audio/${sound === "street" ? "street-order" : sound}.wav`, document.baseURI).href;
     const player = audio.current ??= new Audio();
     if (player.src !== src) player.src = src;
     player.volume = sound === "crunch" ? 0.55 : sound === "correct" ? 0.65 : 1;
@@ -75,23 +83,52 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
 
   function next() {
     if (!play || !solved || play.finished) return;
-    const score = play.score + Number(!wrong.length);
+    const right = Number(!wrong.length);
+    const score = play.score + right;
+    const id = preschoolTopic(play.game);
+    const results = play.results?.map(topic => topic.id === id ? { ...topic, right: topic.right + right } : topic);
     if (play.index + 1 === play.rounds.length) {
-      onComplete(play.game, score, play.rounds.length, play.level);
-      setPlay({ ...play, score, finished: true });
+      if (results) onTestComplete(score, play.rounds.length, results);
+      else onComplete(play.game, score, play.rounds.length, play.level);
+      setPlay({ ...play, score, results, finished: true });
       return;
     }
     resetRound();
-    setPlay({ ...play, score, index: play.index + 1 });
+    const index = play.index + 1;
+    const game = play.test?.online[index].game ?? play.game;
+    setPlay({ ...play, score, results, game, index });
+    if (game !== play.game) playSound(game);
+  }
+
+  function testVariant() {
+    const chosen = variant ?? makePreschoolTest(counts, testLevel, recentStories);
+    setVariant(chosen);
+    return chosen;
+  }
+
+  function startTest() {
+    const test = testVariant();
+    const game = test.online[0].game;
+    const rounds = test.online.map(item => item.round);
+    const ids = rounds.flatMap(round => round.kind === "story" ? [round.storyId] : []);
+    if (ids.length) onStoriesSeen(ids);
+    resetRound();
+    setExportError(false);
+    setPlay({ game, rounds, index: 0, score: 0, finished: false, level: testLevel, test,
+      results: preschoolGameIds.filter(id => counts[id]).map(id => ({ id: preschoolTopic(id), right: 0, total: counts[id]! })),
+    });
+    playSound(game);
   }
 
   async function exportSheet(format: "pdf" | "docx" | "print") {
-    if (!play || exporting) return;
+    if (exporting || (!play && !builder)) return;
     setExporting(true);
     setExportError(false);
     try {
-      const { downloadPreschoolSheet } = await import("./preschool-export");
-      await downloadPreschoolSheet(play.game, play.rounds, format);
+      const test = play?.test ?? (builder && !play ? testVariant() : null);
+      const { downloadPreschoolSheet, downloadPreschoolItems } = await import("./preschool-export");
+      if (test) await downloadPreschoolItems(test.paper, format);
+      else if (play) await downloadPreschoolSheet(play.game, play.rounds, format);
     } catch {
       setExportError(true);
     } finally {
@@ -103,6 +140,43 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
     audio.current?.pause();
     setPlay(null);
   };
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const exportButtons = (["pdf", "docx", "print"] as const).map((format, index) =>
+    <button type="button" key={format} className="button light"
+      disabled={exporting || (!play && (!total || total > maxPreschoolTestItems))}
+      onClick={() => void exportSheet(format)}>{["PDF", "Word", "Tisk"][index]}</button>);
+  if (!play && builder) return (
+    <section className="preschool-menu">
+      <header className="preschool-toolbar">
+        <button type="button" className="preschool-back" onClick={() => setBuilder(false)} aria-label="Zpět ke hrám"><ChevronLeft /></button>
+        <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Předškolácký test</h1>
+      </header>
+      <div className="preschool-test-counts">
+        {preschoolGameIds.map(id => <label key={id}>
+          <span>{preschoolGames[id].title}</span>
+          <select aria-label={preschoolGames[id].title} value={counts[id] ?? 0} onChange={event => {
+            setCounts({ ...counts, [id]: Number(event.target.value) });
+            setVariant(null);
+          }}>
+            {Array.from({ length: maxPreschoolGameItems + 1 }, (_, count) => <option key={count} value={count}>{count}</option>)}
+          </select>
+        </label>)}
+        {!!counts.story && <label><span>Počet obrázků v příběhu</span>
+          <select value={testLevel} onChange={event => {
+            setTestLevel(event.target.value === "2" ? 2 : 1);
+            setVariant(null);
+          }}><option value="1">3 obrázky</option><option value="2">5 obrázků</option></select>
+        </label>}
+      </div>
+      <p role="status">Počet úloh {total} / {maxPreschoolTestItems}</p>
+      <div className="preschool-test-actions">
+        <button type="button" className="button primary" disabled={!total || total > maxPreschoolTestItems} onClick={startTest}>Spustit online</button>
+        {exportButtons}
+        {variant && <button type="button" className="button light" disabled={exporting} onClick={() => setVariant(makePreschoolTest(counts, testLevel, recentStories))}>Nová varianta</button>}
+      </div>
+      {exportError && <p role="alert">Pracovní list se nepodařilo připravit.</p>}
+    </section>
+  );
   if (!play && chooseStory) return (
     <section className="preschool-menu">
       <header className="preschool-toolbar">
@@ -126,6 +200,7 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
   if (!play) return (
     <section className="preschool-menu">
       <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Obrázkové hry</h1>
+      <button type="button" className="button primary preschool-test-open" onClick={() => setBuilder(true)}>Sestavit předškolácký test</button>
       <div className="preschool-games">
         {preschoolGameIds.map(id => (
           <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => id === "story" && storyBanks[2].length > 0 ? setChooseStory(true) : start(id)}>
@@ -153,8 +228,8 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
   return (
     <section className="preschool-play" aria-label={game.title}>
       <header className="preschool-toolbar">
-        <button type="button" className="preschool-back" onClick={back} aria-label={chooseStory ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
-        <h1>{game.title}</h1>
+        <button type="button" className="preschool-back" onClick={back} aria-label={play.test ? "Zpět k sestavení testu" : chooseStory ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
+        <h1>{play.test && play.finished ? "Předškolácký test" : game.title}</h1>
         {!play.finished && <button type="button" className="preschool-speaker" ref={element => { transition.current = element; }}
           aria-label="Přehrát pokyn znovu" onClick={() => playSound(play.game)}>
           <img src="./preschool/pictures/speaker.png" alt="" />
@@ -164,12 +239,15 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
         <div className="preschool-finish">
           <Star size={64} aria-hidden="true" />
           <h2 tabIndex={-1} ref={element => { transition.current = element; }}>Hotovo!</h2>
-          <button type="button" className="button primary" onClick={() => start(play.game, play.level)}><RotateCcw /> Hrát znovu</button>
+          {play.test ? <><p>Správně na první pokus {play.score} z {play.rounds.length}</p>
+            <button type="button" className="button primary" onClick={back}>Zpět k sestavení testu</button></>
+            : <button type="button" className="button primary" onClick={() => start(play.game, play.level)}><RotateCcw /> Hrát znovu</button>}
         </div>
       ) : (
         <div className="preschool-board">
           <ol className="preschool-steps" aria-label={`Kolo ${play.index + 1} z ${play.rounds.length}`}>
-            {play.rounds.map((_, i) => <li key={i} aria-hidden="true" className={i <= play.index ? "reached" : ""} />)}
+            {play.rounds.length > 10 ? <li className="preschool-step-count">{play.index + 1} / {play.rounds.length}</li>
+              : play.rounds.map((_, i) => <li key={i} aria-hidden="true" className={i <= play.index ? "reached" : ""} />)}
           </ol>
           {audioError && <p className="preschool-audio-error" role="status">Ťukni na reproduktor a poslechni si pokyn.</p>}
           {round.kind === "choice" && (
@@ -216,11 +294,8 @@ export function PreschoolGames({ onComplete, recentStories = [], onStoriesSeen }
       )}
       <details className="preschool-print">
         <summary>Pro dospělé · pracovní list</summary>
-        <p>{game.instruction}</p>
-        {(["pdf", "docx", "print"] as const).map((format, index) => <button type="button" key={format}
-          className="button light" disabled={exporting} onClick={() => void exportSheet(format)}>
-          {["PDF", "Word", "Tisk"][index]}
-        </button>)}
+        <p>{play.test ? "Úlohy jsou na papíře seskupené podle hry." : game.instruction}</p>
+        {exportButtons}
         {exportError && <p role="alert">Pracovní list se nepodařilo připravit.</p>}
       </details>
     </section>

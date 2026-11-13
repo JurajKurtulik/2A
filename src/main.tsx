@@ -644,6 +644,13 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
                   topics: [{ id: preschoolTopic(game), right: score, total }],
                 }, ...profile.history],
               })}
+              onTestComplete={(score, total, topics) => updateProfile({
+                ...profile,
+                history: [{
+                  date: new Date().toISOString(), label: "Předškolácký test",
+                  kind: "test", grade: PRESCHOOL_GRADE, score, total, topics,
+                }, ...profile.history],
+              })}
             />
           )}
           {!isPreschool && !session &&
