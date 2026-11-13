@@ -24,7 +24,7 @@
 .ice-options, .listen-plates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .ice-options button { min-height: 88px; border: 2px solid #e1c9d9; border-radius: 14px; background: #fff5fa; padding: 4px; cursor: pointer; }
 .ice-options button span { display: flex; justify-content: center; }
-.ice-options img { width: 20%; max-width: 30px; aspect-ratio: 1; object-fit: contain; }
+.ice-options img { width: 25%; max-width: 38px; aspect-ratio: 1; object-fit: contain; }
 .ice-options button[data-result="correct"] { border-color: #438461; }
 .ice-options button[data-result="retry"], .listen-plate[data-result="retry"] { outline: 2px dashed #aa673d; }
 .listen-plate { background: var(--plate); box-shadow: inset 0 0 0 8px #ffffff66, inset 0 -6px #0002; border: 2px solid #40604c66; border-radius: 50%; aspect-ratio: 1.7; display: grid; place-items: center; cursor: pointer; }
@@ -203,6 +203,7 @@ button.trip-rider { cursor: pointer; }
 .street-slot { width: clamp(43px, 14vw, 85px); aspect-ratio: 1; border-style: dashed; background: #eff6e8; }
 .pizza-puzzle .street-model > span, .pizza-puzzle .street-slot { width: clamp(65px, 24vw, 130px); }
 .pizza-puzzle .street-houses button { width: clamp(61px, 21vw, 100px); }
+.pizza-puzzle[data-pieces="5"] :is(.street-model > span, .street-slot, .street-houses button) { width: min(18%, 93px); min-width: 0; }
 .street-houses button:disabled { opacity: .28; }
 @media (prefers-reduced-motion: reduce) {
   .balance-arm-art, .balance-pan { transition: none; }
@@ -258,6 +259,7 @@ button.trip-rider { cursor: pointer; }
 .preschool-shape-grid .correct, .preschool-more .correct { border-color: #438461; background: #e4f4e4; }
 .preschool-shape-grid .incorrect, .preschool-more .incorrect, .preschool-maze-controls .incorrect { border-color: #ae685c; border-style: dashed; }
 .preschool-maze { gap: 3px; width: min(100%, 275px); }
+.preschool-maze.large { width: min(100%, 410px); }
 .preschool-maze > span { border-radius: 7px; border-width: 1px; }
 .preschool-maze > .wall { background: #53735c; border-color: #53735c; }
 .preschool-maze > .goal { background: #f9e9c5; }

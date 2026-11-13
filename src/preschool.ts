@@ -67,6 +67,8 @@ export const preschoolGames = {
 } as const;
 export type PreschoolGame = keyof typeof preschoolGames;
 export const preschoolLevels = {
+  match: ["3 pizzy", "5 pizz"],
+  maze: ["Malé bludiště", "Velké bludiště"],
   story: ["3 obrázky", "5 obrázků"],
   pattern: ["Kratší vzory", "Složitější vzory"],
   build: ["Malá plocha", "Velká plocha"],
@@ -190,6 +192,13 @@ const mazes = [
   ["S.#.", "#.#G", "...."],
   [".#..G", ".....", "S###.", "....."],
 ] as const;
+const largeMazes = [
+  ["S..#...", "##.#.#.", "...#.#.", ".###.#.", ".....#.", ".###..G"],
+  ["S#....G", ".#.####", ".#.....", ".#####.", "...#...", "##...#."],
+  ["S....#G", ".###.#.", "...#.#.", "##.#.#.", ".......", ".#####."],
+  ["S#....G", "...###.", "##.....", "...###.", ".#.....", "....##."],
+  ["S..#..G", ".#.#.#.", ".#...#.", ".###.#.", "...#...", "##...#."],
+] as const;
 export const directions = { up: [-1, 0], right: [0, 1], down: [1, 0], left: [0, -1] } as const;
 export type Direction = keyof typeof directions;
 
@@ -255,7 +264,9 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         return { kind: "build", columns, cells, palette };
       });
     case "maze":
-      return mazes.map(map => ({ kind: "maze", map, start: map.join("").indexOf("S"), goal: map.join("").indexOf("G") }));
+      return shuffle<readonly string[]>(level === 2 ? largeMazes : mazes).map(map => ({
+        kind: "maze", map, start: map.join("").indexOf("S"), goal: map.join("").indexOf("G"),
+      }));
     case "more": {
       const objects = shuffle([...fruit, ...nature]);
       const counts: [number, number][] = [[1, 3], [2, 4], [3, 4], [4, 5], [5, 6]];
@@ -301,13 +312,16 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         return { kind: "street", houses, model };
       });
     case "match": {
+      const count = level === 2 ? 5 : 3;
       const deck = shuffle(pizzaPairs);
       let previous: typeof pizzaPairs = [];
       return Array.from({ length: 5 }, () => {
-        const pairs = deck.splice(0, 3);
-        if (pairs.length < 3) {
+        const pairs = deck.splice(0, count);
+        if (pairs.length < count) {
           const fresh = pizzaPairs.filter(pair => !pairs.includes(pair) && !previous.includes(pair));
-          pairs.push(...shuffle(fresh).slice(0, 3 - pairs.length));
+          const next = shuffle(fresh).slice(0, count - pairs.length);
+          pairs.push(...next);
+          deck.push(...shuffle(pizzaPairs.filter(pair => !pairs.includes(pair))));
         }
         previous = pairs;
         const pizzas = shuffle(pairs.map(([pizza]) => pizza));

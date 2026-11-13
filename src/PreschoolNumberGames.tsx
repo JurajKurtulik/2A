@@ -225,7 +225,7 @@ export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & {
     };
   }
 
-  return <div className={`new-puzzle street-puzzle${matching ? " pizza-puzzle" : ""}`}>
+  return <div className={`new-puzzle street-puzzle${matching ? " pizza-puzzle" : ""}`} data-pieces={pieces.length}>
     <div className="street-track street-model" aria-label={matching ? "Celé pizzy" : "Vzor ulice"}>
       {model.map(house => <span key={house}><PictureCard picture={house} /></span>)}
     </div>

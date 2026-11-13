@@ -132,7 +132,7 @@ export function MazePuzzle({ round, solved, onCorrect, onWrong }: Feedback & { r
     move(direction);
   }
   return <>
-    <div className="preschool-maze" style={{ "--puzzle-columns": width } as CSSProperties}
+    <div className={`preschool-maze${width >= 7 ? " large" : ""}`} style={{ "--puzzle-columns": width } as CSSProperties}
       aria-label={`Kočka je v řádku ${Math.floor(position / width) + 1}, políčko ${position % width + 1}`}>
       {[...round.map.join("")].map((tile, index) => <span key={index}
         className={tile === "#" ? "wall" : tile === "G" ? "goal" : ""}>

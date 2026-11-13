@@ -28,7 +28,7 @@ export function IceCreamPuzzle({ round, solved, onCorrect, onWrong }: Feedback &
       {round.options.map(count => <button type="button" key={count} aria-label={`Počet kopečků: ${count}`}
         disabled={solved} data-result={choice === count ? (solved ? "correct" : "retry") : undefined}
         onClick={() => { setChoice(count); if (count === round.count) onCorrect(); else onWrong(); }}>
-        {[Math.min(5, count), Math.max(0, count - 5)].filter(Boolean).map((group, row) => <span key={row}>
+        {Array.from({ length: Math.ceil(count / 4) }, (_, row) => Math.min(4, count - row * 4)).map((group, row) => <span key={row}>
           {Array.from({ length: group }, (_, i) => <PictureCard key={i} picture="iceBall" />)}
         </span>)}
       </button>)}
