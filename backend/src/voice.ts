@@ -37,11 +37,12 @@ export async function connectVoice(
     'Při sdělení o nebezpečí povzbuď žáka, aby se hned obrátil na důvěryhodného dospělého.',
   ].join(' ');
   if (supportsLive === true && config.liveDeployment) {
+    const delivery = 'Mluv klidně a o něco pomaleji než v běžném rozhovoru. Používej krátké věty a dělej mezi nimi přirozené pauzy. Česky mluv se spisovnou českou výslovností a přirozenou českou intonací. Před anglickým slovem udělej krátkou pauzu, vyslov ho zřetelně a potom pokračuj česky.';
     const call = await fetch(new URL('/openai/v1/live/sessions', endpoint), {
       method: 'POST', signal: AbortSignal.timeout(12000),
       headers: { Authorization: `Bearer ${token.token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        session: { model: config.liveDeployment, instructions, audio: { output: { voice: 'marin' } },
+        session: { model: config.liveDeployment, instructions: `${instructions} ${delivery}`, audio: { output: { voice: 'marin' } },
           delegation: { type: 'client' } },
         transport: { type: 'webrtc', sdp },
       }),
