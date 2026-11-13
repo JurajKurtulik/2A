@@ -1,5 +1,7 @@
 # Jak společně rozšiřovat Školu hrou
 
+Pro předškolní hry používejte také [pravidla návrhu předškolních her](PRESCHOOL_DESIGN_GUIDE.md).
+
 Aplikace má růst s dětmi od 1. do 9. třídy. Nové zadání od rodiče vždy patří do konkrétního ročníku a předmětu. Dosavadní učivo patří pouze do 2. třídy. Ostatní ročníky zůstávají prázdné, dokud nedostaneme podklady. Nevkládat do nich kopie učiva ani smyšlené ukázky.
 
 ## Podklady pro další změnu
