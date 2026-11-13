@@ -68,11 +68,14 @@ export function VoiceLesson({ login }: { login: Login }) {
         if (active.current === connection && ["failed", "closed"].includes(peer.connectionState)) end("Spojení se přerušilo.");
       };
       const events = peer.createDataChannel("oai-events");
+      let live = false;
       events.onopen = () => {
         if (active.current !== connection) return;
         window.clearTimeout(connection.timer);
         connection.timer = window.setTimeout(() => end("Pětiminutová lekce skončila."), 5 * 60000);
-        events.send(JSON.stringify({ type: "response.create" }));
+        events.send(JSON.stringify(live
+          ? { type: "session.commentary.append", delegation_id: null, content: "Zahaj lekci podle instrukcí. Krátce pozdrav česky a polož jednu otázku." }
+          : { type: "response.create" }));
         mic.getAudioTracks().forEach(track => { track.enabled = true; });
         setState("ready");
         setStatus("Mikrofon je zapnutý. Až učitel domluví, můžeš odpovědět.");
@@ -83,7 +86,7 @@ export function VoiceLesson({ login }: { login: Login }) {
       const response = await fetch(`${api}/voice`, {
         method: "POST", signal: connection.abort.signal,
         headers: { Authorization: `Bearer ${login.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, greeting, sdp: offer.sdp }),
+        body: JSON.stringify({ topic, greeting, sdp: offer.sdp, supportsLive: true }),
       });
       if (active.current !== connection) return;
       if (!response.ok) {
@@ -91,7 +94,9 @@ export function VoiceLesson({ login }: { login: Login }) {
           ? "Dnešní počet zkušebních lekcí je vyčerpaný." : "Hlasový učitel teď není dostupný.");
         return;
       }
-      await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
+      live = response.headers.get("Content-Type")?.includes("application/json") ?? false;
+      const sdp = live ? (await response.json() as { sdp: string }).sdp : await response.text();
+      await peer.setRemoteDescription({ type: "answer", sdp });
     } catch (error) {
       if (active.current === connection) end(error instanceof DOMException && error.name === "NotAllowedError"
         ? "Povol mikrofon v prohlížeči a zkus to znovu." : "Připojení se nepodařilo. Zkus to znovu.");
