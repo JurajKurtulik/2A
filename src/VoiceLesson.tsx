@@ -4,10 +4,29 @@ import type { Login } from "./cloud-progress";
 
 const api = import.meta.env.VITE_PROGRESS_API_URL ?? "https://p-func-skolahrou-jk.azurewebsites.net/api/v1/profile";
 type Connection = { abort: AbortController; peer: RTCPeerConnection; mic?: MediaStream; timer?: number };
-const topics = { free: "Vybereme spolu", colors: "Barvy", animals: "Zvířata", body: "Části těla" };
+const vocabulary = {
+  free: "Vybereme spolu", colors: "Barvy", animals: "Zvířata", body: "Části těla",
+  family: "Rodina", food: "Jídlo a pití", clothes: "Oblečení", toys: "Hračky",
+  school: "Školní potřeby", numbers: "Čísla do 20",
+};
+const subjects = {
+  english: { label: "Angličtina", topics: vocabulary },
+  math: { label: "Matematika", topics: {
+    mental10: "Počítání do 10", mental20: "Počítání do 20",
+    multiplication: "Malá násobilka", stories20: "Slovní úlohy do 20",
+    compare20: "Porovnávání čísel do 20",
+  } },
+  czech: { label: "Čeština", topics: {
+    sentenceKinds: "Druhy vět", opposites: "Slovní protiklady",
+    categories: "Nadřazená a podřazená slova",
+  } },
+};
+type Subject = keyof typeof subjects;
 
-export function VoiceLesson({ login }: { login: Login }) {
-  const [topic, setTopic] = useState("free");
+export function VoiceLesson({ login, grade }: { login: Login; grade: number }) {
+  const [subject, setSubject] = useState<Subject | null>(null);
+  const [englishMode, setEnglishMode] = useState<"words" | "sentences" | null>(null);
+  const [topic, setTopic] = useState("");
   const [greeting, setGreeting] = useState(false);
   const [state, setState] = useState<"idle" | "connecting" | "ready">("idle");
   const [status, setStatus] = useState("");
@@ -40,7 +59,7 @@ export function VoiceLesson({ login }: { login: Login }) {
   }
 
   async function start() {
-    if (active.current) return;
+    if (active.current || !topic) return;
     if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
       setStatus("Tento prohlížeč hlasovou lekci nepodporuje.");
       return;
@@ -86,7 +105,7 @@ export function VoiceLesson({ login }: { login: Login }) {
       const response = await fetch(`${api}/voice`, {
         method: "POST", signal: connection.abort.signal,
         headers: { Authorization: `Bearer ${login.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, greeting, sdp: offer.sdp, supportsLive: true }),
+        body: JSON.stringify({ topic, grade, greeting, sdp: offer.sdp, supportsLive: true }),
       });
       if (active.current !== connection) return;
       if (!response.ok) {
@@ -104,21 +123,38 @@ export function VoiceLesson({ login }: { login: Login }) {
   }
 
   return <section className="voice-lesson">
-    <h1>Angličtina nahlas</h1>
-    <p>Krátká lekce s AI učitelem. Vyber si téma, nebo ho vymyslete spolu.</p>
+    <h1>Povídej a procvičuj</h1>
     <fieldset disabled={state !== "idle"}>
-      <legend>Téma lekce</legend>
+      <legend>Co si chceš procvičit?</legend>
       <div className="voice-topics">
-        {Object.entries(topics).map(([id, label]) => <button key={id} className={`button ${topic === id ? "primary" : "light"}`}
-          type="button" aria-pressed={topic === id} onClick={() => setTopic(id)}>{label}</button>)}
+        {(Object.keys(subjects) as Subject[]).map(id => <button key={id}
+          className={`button ${subject === id ? "primary" : "light"}`} type="button" aria-pressed={subject === id}
+          onClick={() => { setSubject(id); setEnglishMode(null); setTopic(""); }}>{subjects[id].label}</button>)}
       </div>
     </fieldset>
-    {state === "idle" && <div className="voice-options">
+    {subject === "english" && <fieldset disabled={state !== "idle"}>
+      <legend>Co budeme říkat?</legend>
+      <div className="voice-topics">
+        <button type="button" className={`button ${englishMode === "words" ? "primary" : "light"}`}
+          aria-pressed={englishMode === "words"} onClick={() => { setEnglishMode("words"); setTopic(""); }}>Slovíčka</button>
+        <button type="button" className={`button ${englishMode === "sentences" ? "primary" : "light"}`}
+          aria-pressed={englishMode === "sentences"} onClick={() => { setEnglishMode("sentences"); setTopic("sentences"); }}>Jednoduché věty</button>
+      </div>
+    </fieldset>}
+    {subject && (subject !== "english" || englishMode === "words") && <fieldset disabled={state !== "idle"}>
+      <legend>Téma lekce</legend>
+      <div className="voice-topics">
+        {Object.entries(subjects[subject].topics).map(([id, label]) => <button key={id}
+          className={`button ${topic === id ? "primary" : "light"}`} type="button"
+          aria-pressed={topic === id} onClick={() => setTopic(id)}>{label}</button>)}
+      </div>
+    </fieldset>}
+    {topic && state === "idle" && <div className="voice-options">
       <label><input type="checkbox" checked={greeting} onChange={event => setGreeting(event.target.checked)} /> Pozdravit jménem z profilu</label>
       <p>Zvuk se během lekce posílá do Azure. Škola hrou nahrávku ani přepis neukládá.</p>
     </div>}
     {state === "idle"
-      ? <button type="button" className="button primary" onClick={() => void start()}><Mic /> Zahájit lekci</button>
+      ? topic && <button type="button" className="button primary" onClick={() => void start()}><Mic /> Zahájit lekci</button>
       : <button type="button" className="button primary" onClick={() => end("Lekce skončila. Mikrofon je vypnutý.")}><MicOff /> Ukončit lekci</button>}
     {resumeAudio && <button type="button" className="button light" onClick={() => {
       void audio.current?.play().then(() => setResumeAudio(false)).catch(() => {});

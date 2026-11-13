@@ -12,6 +12,7 @@ Interaktivní procvičování pro předškoláky a 1.–9. třídu. Aktuální u
 - Hra **Co bylo nejdřív?** nabízí 26 příběhů se třemi obrázky a 30 příběhů s pěti obrázky. Každá karta je vlastní kreslenou ilustrací jednoho kroku. V rámci profilu v prohlížeči hra vybírá nejdřív dosud nepoužité příběhy.
 - V **Zaječí hostině** děti rozdělují mrkve podle teček na miskách a v závěru opravují popletenou svačinu. Mrkev při vložení křupne. Správné rozdělení se kontroluje zvonečkem.
 - 11 matematických a 9 jazykových okruhů pro 2. třídu.
+- **Povídej a procvičuj** nabízí od 1. třídy hlasové lekce angličtiny, matematiky a češtiny. Školák si zvolí předmět a téma. GPT‑Live tvoří úlohy během rozhovoru, dává zpětnou vazbu a pokračuje do ukončení lekce nebo pětiminutového limitu.
 - Krátká cvičení po osmi úlohách a krátké i delší cvičné písemky.
 - Vlastní sestavení písemky: výběr témat, 1 až 20 příkladů z každého tématu a nejvýše 120 příkladů celkem. Krátká a delší varianta slouží jako upravitelné předvolby.
 - Jedna označená varianta pro online vyplňování, PDF, upravitelný Word i přímý tisk. Náhled a oddělené řešení pro rodiče používají stejnou sestavu. Nová zadání vznikají až po stisknutí „Nová varianta“.
