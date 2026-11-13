@@ -2,8 +2,8 @@ import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { ArrowDown, ArrowUp, Check } from "lucide-react";
 import { PictureCard } from "./PreschoolPuzzles";
 import {
-  bearColors, bearPatterns, dotLayouts, matchingBear, pictureLabel, tripCapacity, tripCount,
-  type BalanceRound, type BearPatch, type DoorRound, type Picture, type StreetHouse, type StreetRound, type TripRound,
+  bearColors, bearPatterns, dotLayouts, matchingBear, pictureLabel, pizzaPairs, tripCapacity, tripCount,
+  type BalanceRound, type BearPatch, type DoorRound, type Picture, type MatchRound, type StreetRound, type TripRound,
 } from "./preschool";
 
 type Feedback = { solved: boolean; onCorrect: () => void; onWrong: () => void };
@@ -179,12 +179,16 @@ export function DoorPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { r
   </div>;
 }
 
-export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { round: StreetRound }) {
-  const [selected, setSelected] = useState<StreetHouse | null>(null);
-  const [slots, setSlots] = useState<(StreetHouse | null)[]>(() => round.houses.map(() => null));
+export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { round: StreetRound | MatchRound }) {
+  const matching = round.kind === "match";
+  const pieces = matching ? round.slices : round.houses;
+  const model = matching ? round.pizzas : round.model;
+  const order = matching ? model.map(pizza => pizzaPairs.find(pair => pair[0] === pizza)![1]) : model;
+  const [selected, setSelected] = useState<Picture | null>(null);
+  const [slots, setSlots] = useState<(Picture | null)[]>(() => pieces.map(() => null));
 
   const track = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<{ house: StreetHouse; x: number; y: number } | null>(null);
+  const [drag, setDrag] = useState<{ house: Picture; x: number; y: number } | null>(null);
   const pointer = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
 
   function place(index: number, house = selected) {
@@ -197,7 +201,7 @@ export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & {
     }
   }
 
-  function dragHouse(house: StreetHouse | null) {
+  function dragHouse(house: Picture | null) {
     return {
       onPointerDown(event: PointerEvent<HTMLButtonElement>) {
         pointer.current = null;
@@ -221,9 +225,9 @@ export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & {
     };
   }
 
-  return <div className="new-puzzle street-puzzle">
-    <div className="street-track street-model" aria-label="Vzor ulice">
-      {round.model.map(house => <span key={house}><PictureCard picture={house} /></span>)}
+  return <div className={`new-puzzle street-puzzle${matching ? " pizza-puzzle" : ""}`}>
+    <div className="street-track street-model" aria-label={matching ? "Celé pizzy" : "Vzor ulice"}>
+      {model.map(house => <span key={house}><PictureCard picture={house} /></span>)}
     </div>
     <div className="street-track" aria-label="Ulice" ref={track}>
       {slots.map((house, i) => <button type="button" className="street-slot" key={i}
@@ -233,16 +237,16 @@ export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & {
         {house && <PictureCard picture={house} />}
       </button>)}
     </div>
-    <div className="puzzle-choice-row street-houses" aria-label="Volné domečky">
-      {round.houses.map(house => <button type="button" key={house} aria-pressed={selected === house} disabled={solved || slots.includes(house)}
+    <div className="puzzle-choice-row street-houses" aria-label={matching ? "Dílky pizzy" : "Volné domečky"}>
+      {pieces.map(house => <button type="button" key={house} aria-pressed={selected === house} disabled={solved || slots.includes(house)}
         {...dragHouse(house)} onClick={event => {
           if (!event.detail || !pointer.current?.moved) setSelected(selected === house ? null : house);
         }}><PictureCard picture={house} /></button>)}
     </div>
     {drag && <span className="feed-drag" aria-hidden="true" style={{ left: drag.x, top: drag.y }}><PictureCard picture={drag.house} /></span>}
-    {!solved && <Confirm label="Zkontrolovat ulici" disabled={slots.includes(null)} onClick={() => {
+    {!solved && <Confirm label={matching ? "Zkontrolovat pizzy" : "Zkontrolovat ulici"} disabled={slots.includes(null)} onClick={() => {
       setSelected(null);
-      if (slots.every((house, i) => house === round.model[i])) onCorrect();
+      if (slots.every((house, i) => house === order[i])) onCorrect();
       else onWrong();
     }} />}
   </div>;

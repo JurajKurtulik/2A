@@ -4,8 +4,8 @@ Interaktivní procvičování pro předškoláky a 1.–9. třídu. Aktuální u
 
 ## Co aplikace umí
 
-- Dvanáct pětikolových obrázkových her pro předškoláky. Český pokyn zazní při spuštění hry a lze ho zopakovat reproduktorem. Správnou odpověď doprovází cinknutí a chybu krátké povzbuzení. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
-- **Předškolácký test** kombinuje vybrané hry a počty úloh. Stejná varianta se online střídá po jednotlivých úlohách a na papíře se seskupuje podle hry. Dokončený online test se ukládá do historie.
+- Sedmnáct pětikolových obrázkových her pro předškoláky. Český pokyn zazní při spuštění hry a lze ho zopakovat reproduktorem. Správnou odpověď doprovází cinknutí a chybu krátké povzbuzení. Pracovní listy jsou k dispozici jako PDF, Word a tisk.
+- **Předškolácký test** v hlavní navigaci kombinuje vybrané hry a počty úloh. Stejná varianta se online střídá po jednotlivých úlohách a na papíře se seskupuje podle hry. Dokončený online test se ukládá do historie.
 - **Výlet autobusem** procvičuje počítání do šesti po nástupu a výstupu zvířátek v promíchaných kolech. Ve hře **Vyvaž váhu** děti přetahují jablka do stejně těžkých misek. Ve hře **Kdo bydlí v domečku?** hledají medvídka podle barvy i vzorku. V **Domečcích v řadě** skládají ulici podle velké obrázkové předlohy.
 - Hra **Co bylo nejdřív?** nabízí 26 příběhů se třemi obrázky a 30 příběhů s pěti obrázky. Každá karta je vlastní kreslenou ilustrací jednoho kroku. V rámci profilu v prohlížeči hra vybírá nejdřív dosud nepoužité příběhy.
 - V **Zaječí hostině** děti rozdělují mrkve podle teček na miskách a v závěru opravují popletenou svačinu. Mrkev při vložení křupne. Správné rozdělení se kontroluje zvonečkem.

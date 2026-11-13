@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { directions, matchingBear, mazeStep, pictureLabel, picturePath, pictures, preschoolGameIds, preschoolRounds,
+import { directions, listeningPrompts, matchingBear, mazeStep, pictureLabel, picturePath, pictures, preschoolGameIds, preschoolRounds,
   tripCapacity, tripCount, type Direction } from "../src/preschool";
 import { storyBanks, storyFrameId } from "../src/banks/preschool-stories";
 
@@ -15,7 +15,9 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
     assert.ok(existsSync(`public/preschool/pictures/${picture}.png`), picture);
   }
   for (const game of preschoolGameIds) {
-    assert.ok(existsSync(`public/preschool/audio/${game}.wav`), game);
+    if (game === "listen") {
+      for (const cue of Object.keys(listeningPrompts)) assert.ok(existsSync(`public/preschool/audio/${cue}.wav`), cue);
+    } else assert.ok(existsSync(`public/preschool/audio/${game}.wav`), game);
     const rounds = preschoolRounds(game);
     assert.equal(rounds.length, 5);
     if (game === "trip") {
@@ -25,6 +27,22 @@ test("Preschool rounds have one solution and local illustrations and speech", ()
     }
     if (game === "pair") assert.equal(new Set(rounds.map(round => round.kind === "choice" && round.answer)).size, 5);
     for (const round of rounds) {
+      if (round.kind === "listen") {
+        assert.equal(round.plates.length, new Set(round.plates).size);
+        assert.equal(round.answer, { listenLeft: 0, listenRight: 2, listenMiddle: 1,
+          listenBlue: round.plates.indexOf("blue"), listenGreen: round.plates.indexOf("green") }[round.cue]);
+        continue;
+      }
+      if (round.kind === "match") {
+        assert.equal(new Set(round.pizzas).size, 3);
+        assert.equal(new Set(round.slices).size, 3);
+        continue;
+      }
+      if (round.kind === "iceCream") {
+        assert.equal(round.options.filter(count => count === round.count).length, 1);
+        assert.ok(round.options.every(count => count >= 1 && count <= 10));
+        continue;
+      }
       if (round.kind === "trip") {
         const riders = [...round.stay, ...round.exit, ...round.waiting];
         assert.equal(new Set(riders).size, riders.length);

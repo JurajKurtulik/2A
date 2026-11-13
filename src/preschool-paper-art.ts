@@ -1,4 +1,4 @@
-import { picturePath, shapes, type GraphicRound, type Picture, type Shape } from "./preschool";
+import { listeningPrompts, picturePath, plateColors, shapes, type GraphicRound, type Picture, type Shape } from "./preschool";
 import { drawNumberRound } from "./preschool-number-paper";
 
 export const paperGraphic = { width: 480, height: 126 };
@@ -35,6 +35,41 @@ export async function renderPreschoolGraphic(round: GraphicRound): Promise<Uint8
   ctx.scale(scale, scale);
   ctx.strokeStyle = ink;
   ctx.lineWidth = 1.25;
+
+  if (round.kind === "match") {
+    const images = await Promise.all([...round.pizzas, ...round.slices].map(loadPicture));
+    images.forEach((image, i) => {
+      const x = 95 + (i % 3) * 105;
+      ctx.drawImage(image, x, i < 3 ? 0 : 76, 50, 50);
+      if (i < 3) ctx.strokeRect(x + 10, 49, 30, 24);
+    });
+  }
+  if (round.kind === "iceCream") {
+    const scoop = await loadPicture("iceBall");
+    ctx.fillStyle = ink;
+    ctx.font = "bold 40px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(round.count), 240, 42);
+    round.options.forEach((count, i) => {
+      const x = 20 + i * 151;
+      ctx.strokeRect(x, 54, 136, 66);
+      for (let n = 0; n < count; n++) ctx.drawImage(scoop, x + 8 + n % 5 * 24, 61 + Math.floor(n / 5) * 25, 23, 23);
+    });
+  }
+  if (round.kind === "listen") {
+    const muffin = await loadPicture("muffin");
+    ctx.fillStyle = ink;
+    ctx.font = "16px sans-serif";
+    ctx.fillText(listeningPrompts[round.cue], 24, 20);
+    round.plates.forEach((plate, i) => {
+      ctx.beginPath();
+      ctx.ellipse(103 + 137 * i, 56, 44, 18, 0, 0, Math.PI * 2);
+      ctx.fillStyle = plateColors[plate];
+      ctx.fill();
+      ctx.stroke();
+    });
+    ctx.drawImage(muffin, 213, 80, 45, 45);
+  }
 
   if (round.kind === "trip" || round.kind === "balance" || round.kind === "door" || round.kind === "street") {
     await drawNumberRound(ctx, round, loadPicture);

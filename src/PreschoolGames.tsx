@@ -3,12 +3,13 @@ import { ArrowRight, ChevronLeft, Check, RotateCcw, Star } from "lucide-react";
 import { storyBanks, type StoryLevel } from "./banks/preschool-stories";
 import {
   preschoolGameIds, preschoolGames, preschoolRounds,
-  preschoolTopic, type PreschoolGame, type PreschoolRound,
+  preschoolTopic, type ListenRound, type PreschoolGame, type PreschoolRound,
 } from "./preschool";
 import { makePreschoolTest, maxPreschoolGameItems, maxPreschoolTestItems, type PreschoolResult, type PreschoolTestCounts } from "./preschool-test";
 import { BuildPuzzle, MazePuzzle, MorePuzzle, PictureCard, ShapePiece, StoryPuzzle } from "./PreschoolPuzzles";
 import { FeedPuzzle } from "./FeedPuzzle";
 import { BalancePuzzle, DoorPuzzle, StreetPuzzle, TripPuzzle } from "./PreschoolNumberGames";
+import { IceCreamPuzzle, ListenPuzzle } from "./PreschoolExtraGames";
 import "./preschool.css";
 
 type Play = {
@@ -22,7 +23,9 @@ type Play = {
   results?: PreschoolResult[];
 };
 
-export function PreschoolGames({ onComplete, onTestComplete, recentStories = [], onStoriesSeen }: {
+export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, recentStories = [], onStoriesSeen }: {
+  builder: boolean;
+  onGames: () => void;
   onComplete: (game: PreschoolGame, score: number, total: number, level: StoryLevel) => void;
   recentStories?: readonly string[];
   onStoriesSeen: (ids: string[]) => void;
@@ -30,7 +33,6 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
 }) {
   const [play, setPlay] = useState<Play | null>(null);
   const [chooseStory, setChooseStory] = useState(false);
-  const [builder, setBuilder] = useState(false);
   const [counts, setCounts] = useState<PreschoolTestCounts>({});
   const [testLevel, setTestLevel] = useState<StoryLevel>(1);
   const [variant, setVariant] = useState<ReturnType<typeof makePreschoolTest> | null>(null);
@@ -52,7 +54,7 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
     audio.current = null;
   }, []);
 
-  function playSound(sound: PreschoolGame | "correct" | "retry" | "crunch") {
+  function playSound(sound: Exclude<PreschoolGame, "listen"> | ListenRound["cue"] | "correct" | "retry" | "crunch") {
     if (sound !== "crunch") setAudioError(false);
     const src = new URL(`./preschool/audio/${sound === "street" ? "street-order" : sound}.wav`, document.baseURI).href;
     const player = audio.current ??= new Audio();
@@ -63,6 +65,11 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
       if (sound !== "correct" && sound !== "retry" && sound !== "crunch" && player.src === src &&
         !(error instanceof DOMException && error.name === "AbortError")) setAudioError(true);
     });
+  }
+
+  function playInstruction(game: PreschoolGame, round: PreschoolRound) {
+    if (round.kind === "listen") playSound(round.cue);
+    else if (game !== "listen") playSound(game);
   }
 
   function resetRound() {
@@ -78,7 +85,7 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
       onStoriesSeen(rounds.flatMap(round => round.kind === "story" ? [round.storyId] : []));
     }
     setPlay({ game, rounds, index: 0, score: 0, finished: false, level });
-    playSound(game);
+    playInstruction(game, rounds[0]);
   }
 
   function next() {
@@ -97,7 +104,7 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
     const index = play.index + 1;
     const game = play.test?.online[index].game ?? play.game;
     setPlay({ ...play, score, results, game, index });
-    if (game !== play.game) playSound(game);
+    if (game !== play.game || game === "listen") playInstruction(game, play.rounds[index]);
   }
 
   function testVariant() {
@@ -117,7 +124,7 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
     setPlay({ game, rounds, index: 0, score: 0, finished: false, level: testLevel, test,
       results: preschoolGameIds.filter(id => counts[id]).map(id => ({ id: preschoolTopic(id), right: 0, total: counts[id]! })),
     });
-    playSound(game);
+    playInstruction(game, rounds[0]);
   }
 
   async function exportSheet(format: "pdf" | "docx" | "print") {
@@ -146,15 +153,15 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
       disabled={exporting || (!play && (!total || total > maxPreschoolTestItems))}
       onClick={() => void exportSheet(format)}>{["PDF", "Word", "Tisk"][index]}</button>);
   if (!play && builder) return (
-    <section className="preschool-menu">
+    <section className="preschool-menu preschool-builder">
       <header className="preschool-toolbar">
-        <button type="button" className="preschool-back" onClick={() => setBuilder(false)} aria-label="Zpět ke hrám"><ChevronLeft /></button>
+        <button type="button" className="preschool-back" onClick={onGames} aria-label="Zpět ke hrám"><ChevronLeft /></button>
         <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Předškolácký test</h1>
       </header>
       <div className="preschool-test-counts">
         {preschoolGameIds.map(id => <label key={id}>
           <span>{preschoolGames[id].title}</span>
-          <select aria-label={preschoolGames[id].title} value={counts[id] ?? 0} onChange={event => {
+          <select aria-label={preschoolGames[id].title} data-filled={counts[id] ? "" : undefined} value={counts[id] ?? 0} onChange={event => {
             setCounts({ ...counts, [id]: Number(event.target.value) });
             setVariant(null);
           }}>
@@ -200,7 +207,6 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
   if (!play) return (
     <section className="preschool-menu">
       <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Obrázkové hry</h1>
-      <button type="button" className="button primary preschool-test-open" onClick={() => setBuilder(true)}>Sestavit předškolácký test</button>
       <div className="preschool-games">
         {preschoolGameIds.map(id => (
           <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => id === "story" && storyBanks[2].length > 0 ? setChooseStory(true) : start(id)}>
@@ -231,7 +237,7 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
         <button type="button" className="preschool-back" onClick={back} aria-label={play.test ? "Zpět k sestavení testu" : chooseStory ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
         <h1>{play.test && play.finished ? "Předškolácký test" : game.title}</h1>
         {!play.finished && <button type="button" className="preschool-speaker" ref={element => { transition.current = element; }}
-          aria-label="Přehrát pokyn znovu" onClick={() => playSound(play.game)}>
+          aria-label="Přehrát pokyn znovu" onClick={() => playInstruction(play.game, round)}>
           <img src="./preschool/pictures/speaker.png" alt="" />
         </button>}
       </header>
@@ -283,7 +289,9 @@ export function PreschoolGames({ onComplete, onTestComplete, recentStories = [],
           {round.kind === "trip" && <TripPuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "balance" && <BalancePuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "door" && <DoorPuzzle key={roundKey} round={round} {...feedback} />}
-          {round.kind === "street" && <StreetPuzzle key={roundKey} round={round} {...feedback} />}
+          {(round.kind === "street" || round.kind === "match") && <StreetPuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "iceCream" && <IceCreamPuzzle key={roundKey} round={round} {...feedback} />}
+          {round.kind === "listen" && <ListenPuzzle key={roundKey} round={round} {...feedback} />}
           <div className="preschool-feedback" role="status">
             {solved ? <Check aria-label="Správně" /> : !!wrong.length && <RotateCcw aria-label="Zkus to znovu" />}
           </div>

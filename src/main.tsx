@@ -550,9 +550,9 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
     ["home", "Doma", Home],
     ["math", "Matematika", Calculator],
     ["czech", "Čeština", BookOpen],
-    ["tests", "Zkus si písemku", Sparkles],
+    ["tests", isPreschool ? "Předškolácký test" : "Zkus si písemku", Sparkles],
     ["progress", "Moje pokroky", Trophy],
-  ] as const).filter(([id]) => !isPreschool || id === "home" || id === "progress");
+  ] as const).filter(([id]) => !isPreschool || id === "home" || id === "progress" || id === "tests");
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -629,8 +629,11 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
               po zavření nezůstane uložený.
             </div>
           )}
-          {isPreschool && page === "home" && (
+          {isPreschool && (page === "home" || page === "tests") && (
             <PreschoolGames
+              key={page}
+              builder={page === "tests"}
+              onGames={() => navigate("home")}
               recentStories={profile.recentStories}
               onStoriesSeen={ids => updateProfile({
                 ...profile, recentStories: [...new Set([...ids, ...(profile.recentStories ?? [])])],
@@ -853,7 +856,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
               }}
             />
           )}
-          {!session && currentTopics.length > 0 && page === "tests" && (
+          {!session && !isPreschool && currentTopics.length > 0 && page === "tests" && (
             <>
               <span className="eyebrow">V KLIDU A BEZ ZNÁMEK</span>
               <h1>Zkus si písemku</h1>

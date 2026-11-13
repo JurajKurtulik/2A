@@ -19,6 +19,9 @@ export const pictures = {
   house: "domeček", tripBus: "výletní autobus", balanceScale: "váha", logicBear: "medvídek",
   streetRed: "červený domeček", streetBlue: "modrý domeček", streetGold: "žlutý domeček",
   streetPurple: "fialový domeček", streetTree: "strom",
+  pizzaRed: "salámová pizza", pizzaWhite: "houbová pizza", pizzaGreen: "pizza s olivami",
+  sliceRed: "salámový dílek", sliceWhite: "houbový dílek", sliceGreen: "olivový dílek",
+  iceBall: "kopeček zmrzliny", muffin: "muffin",
 } as const;
 type GamePicture = keyof typeof pictures;
 type StoryPicture = ReturnType<typeof storyFrameId>;
@@ -41,6 +44,11 @@ export const preschoolGames = {
   balance: { title: "Vyvaž váhu", picture: "balanceScale", instruction: "Rozděl všechna jablka tak, aby jich bylo na obou miskách stejně." },
   door: { title: "Kdo bydlí v domečku?", picture: "logicBear", instruction: "Zakroužkuj medvídka, který má stejnou barvu i stejný vzorek jako nápověda." },
   street: { title: "Domečky v řadě", picture: "streetRed", instruction: "Podle horní řady spoj každý volný domeček s jeho místem v dolní řadě." },
+  match: { title: "Co k čemu patří?", picture: "pizzaRed", instruction: "Spoj každý dílek s pizzou se stejnou oblohou." },
+  absent: { title: "Co na obrázku není?", picture: "cat", instruction: "Zakroužkuj obrázek, který v horní řadě není." },
+  iceCream: { title: "Zmrzlina na přání", picture: "iceBall", instruction: "Zakroužkuj kartičku, na které je tolik kopečků, kolik ukazuje číslo." },
+  listen: { title: "Poslechni a přesuň", picture: "muffin", instruction: "Dospělý přečte pokyn. Dítě spojí muffin se správným talířem." },
+  crowd: { title: "Kterých zvířátek je víc?", picture: "dog", instruction: "Zakroužkuj zvířátko, kterých je nahoře víc." },
 } as const;
 export type PreschoolGame = keyof typeof preschoolGames;
 export const preschoolGameIds = Object.keys(preschoolGames) as PreschoolGame[];
@@ -76,7 +84,19 @@ export type StreetHouse = "streetRed" | "streetBlue" | "streetGold" | "streetPur
 export type StreetRound = {
   kind: "street"; houses: StreetHouse[]; model: StreetHouse[];
 };
-export type GraphicRound = FeedRound | BuildRound | MazeRound | MoreRound | TripRound | BalanceRound | DoorRound | StreetRound;
+export type MatchRound = { kind: "match"; pizzas: Picture[]; slices: Picture[] };
+export const pizzaPairs: readonly [Picture, Picture][] = [["pizzaRed","sliceRed"],["pizzaWhite","sliceWhite"],["pizzaGreen","sliceGreen"]];
+export type IceCreamRound = { kind: "iceCream"; count: number; options: number[] };
+export const listeningPrompts = {
+  listenLeft: "Polož muffin na levý talíř.",
+  listenRight: "Polož muffin na pravý talíř.",
+  listenMiddle: "Polož muffin na prostřední talíř.",
+  listenBlue: "Polož muffin na modrý talíř.",
+  listenGreen: "Polož muffin na zelený talíř.",
+};
+export const plateColors = { pink: "#dc84a9", blue: "#74a8d0", green: "#8bb973" };
+export type ListenRound = { kind: "listen"; cue: keyof typeof listeningPrompts; plates: (keyof typeof plateColors)[]; answer: number };
+export type GraphicRound = FeedRound | BuildRound | MazeRound | MoreRound | TripRound | BalanceRound | DoorRound | StreetRound | MatchRound | IceCreamRound | ListenRound;
 export type PreschoolRound = ChoiceRound | StoryRound | GraphicRound;
 
 export const tripCount = (round: TripRound) => round.stay.length + round.waiting.length;
@@ -215,7 +235,7 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         };
       });
     case "balance":
-      return ([[0, 0, 2], [1, 0, 3], [1, 3, 0], [0, 0, 6], [4, 1, 1]] as [number, number, number][]).map(([left, right, basket]) => ({
+      return shuffle([[0, 0, 2], [1, 0, 1], [0, 0, 4], [1, 0, 3], [1, 3, 0], [2, 0, 2], [0, 0, 6], [4, 1, 1], [4, 2, 0]] as BalanceRound["starting"][]).slice(0, 5).map(([left, right, basket]) => ({
         kind: "balance", starting: Math.random() < .5 ? [left, right, basket] : [right, left, basket],
       }));
     case "door": {
@@ -236,6 +256,36 @@ export function preschoolRounds(game: PreschoolGame, level: StoryLevel = 1, rece
         const houses = shuffle(model);
         if (houses.every((house, i) => house === model[i])) houses.push(houses.shift()!);
         return { kind: "street", houses, model };
+      });
+    case "match":
+      return Array.from({ length: 5 }, () => {
+        const pizzas = shuffle(pizzaPairs.map(([pizza]) => pizza));
+        const slices = shuffle(pizzaPairs.map(([, slice]) => slice));
+        if (pizzas.every((pizza, i) => pizzaPairs.some(pair => pair[0] === pizza && pair[1] === slices[i]))) slices.push(slices.shift()!);
+        return { kind: "match", pizzas, slices };
+      });
+    case "absent":
+      return shuffle(oddGroups).concat(oddGroups[0]).map(({ family }) => {
+        const [first, second, third, answer] = shuffle(family);
+        return { kind: "choice", prompt: [first, second, third], options: shuffle([first, third, answer]), answer };
+      });
+    case "iceCream":
+      return shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).slice(0, 5).map(count => ({
+        kind: "iceCream", count,
+        options: shuffle(Array.from({ length: 3 }, (_, i) => Math.max(1, Math.min(8, count - 1)) + i)),
+      }));
+    case "listen":
+      return shuffle(Object.keys(listeningPrompts) as ListenRound["cue"][]).map(cue => {
+        const plates = shuffle(Object.keys(plateColors) as ListenRound["plates"]);
+        const answer = { listenLeft: 0, listenRight: 2, listenMiddle: 1, listenBlue: plates.indexOf("blue"), listenGreen: plates.indexOf("green") }[cue];
+        return { kind: "listen", cue, plates, answer };
+      });
+    case "crowd":
+      return Array.from({ length: 5 }, () => {
+        const [answer, other] = shuffle(animals);
+        const smaller = 1 + Math.floor(Math.random() * 4);
+        const larger = smaller + 1 + Math.floor(Math.random() * 2);
+        return { kind: "choice", prompt: shuffle([...Array<Picture>(larger).fill(answer), ...Array<Picture>(smaller).fill(other)]), options: shuffle([answer, other]), answer };
       });
   }
 }
