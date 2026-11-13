@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check } from "lucide-react";
 import {
   mazeStep, picturePath, pictureLabel, shapes,
@@ -48,34 +48,59 @@ export function BuildPuzzle({ round, solved, onCorrect, onWrong }: Feedback & { 
   const [placed, setPlaced] = useState<Record<number, Shape>>({});
   const [mistake, setMistake] = useState<number | null>(null);
   const gridStyle = { "--puzzle-columns": round.columns } as CSSProperties;
+  const workspace = useRef<HTMLDivElement>(null);
+  const pointer = useRef<{ id: number; x: number; y: number; moved: boolean }>(null);
+  const [ghost, setGhost] = useState<{ shape: Shape; x: number; y: number }>();
+
+  function place(shape: Shape | null, index: number) {
+    if (!shape || solved || placed[index]) return;
+    if (shape !== round.cells[index]) {
+      setMistake(index);
+      onWrong();
+      return;
+    }
+    setMistake(null);
+    setPlaced({ ...placed, [index]: shape });
+    if (Object.keys(placed).length + 1 === round.cells.filter(Boolean).length) onCorrect();
+  }
+
   return <>
     <div className="preschool-shape-grid model" style={gridStyle} aria-label="Předloha">
       {round.cells.map((shape, index) => <span key={index} aria-label={shape ? shapes[shape].label : "prázdné políčko"}>
         {shape && <ShapePiece shape={shape} />}
       </span>)}
     </div>
-    <div className="preschool-shape-grid" style={gridStyle} aria-label="Sestav obrázek">
+    <div ref={workspace} className="preschool-shape-grid" style={gridStyle} aria-label="Sestav obrázek">
       {round.cells.map((shape, index) => <button key={index} type="button"
         aria-label={`Políčko ${index + 1}${placed[index] ? `, ${shapes[placed[index]].label}` : ""}`}
         disabled={solved || !!placed[index]}
         className={placed[index] ? "correct" : mistake === index ? "incorrect" : ""}
-        onClick={() => {
-          if (!selected) return;
-          if (selected !== shape) {
-            setMistake(index);
-            onWrong();
-            return;
-          }
-          setMistake(null);
-          setPlaced({ ...placed, [index]: selected });
-          if (Object.keys(placed).length + 1 === round.cells.filter(Boolean).length) onCorrect();
-        }}>{placed[index] && <ShapePiece shape={placed[index]} />}</button>)}
+        data-build-cell={index} onClick={() => place(selected, index)}>{placed[index] && <ShapePiece shape={placed[index]} />}</button>)}
     </div>
     <div className="preschool-choices preschool-shape-palette" aria-label="Tvary">
-      {(Object.keys(shapes) as Shape[]).map(shape => <button key={shape} type="button"
+      {round.palette.map(shape => <button key={shape} type="button"
         aria-label={shapes[shape].label} aria-pressed={selected === shape} disabled={solved}
-        onClick={() => setSelected(selected === shape ? null : shape)}><ShapePiece shape={shape} /></button>)}
+        onPointerDown={event => {
+          if (!event.isPrimary || event.button !== 0) return;
+          pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={event => {
+          const drag = pointer.current;
+          if (!drag || drag.id !== event.pointerId || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+          if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 7) drag.moved = true;
+          if (drag.moved) setGhost({ shape, x: event.clientX, y: event.clientY });
+        }}
+        onPointerUp={event => {
+          if (pointer.current?.id !== event.pointerId || !pointer.current.moved) return;
+          setGhost(undefined);
+          const cell = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-build-cell]");
+          if (cell && workspace.current?.contains(cell)) place(shape, Number(cell.dataset.buildCell));
+        }}
+        onLostPointerCapture={() => setGhost(undefined)}
+        onClick={event => { if (!event.detail || !pointer.current?.moved) setSelected(selected === shape ? null : shape); }}><ShapePiece shape={shape} /></button>)}
     </div>
+    {ghost && <span className="feed-drag" style={{ left: ghost.x, top: ghost.y }}><ShapePiece shape={ghost.shape} /></span>}
   </>;
 }
 

@@ -1,12 +1,16 @@
-import { listeningPrompts, picturePath, plateColors, shapes, type GraphicRound, type Picture, type Shape } from "./preschool";
+import { listeningPrompts, picturePath, plateColors, shapes, visualPath, type GraphicRound, type Picture, type Shape } from "./preschool";
 import { drawNumberRound } from "./preschool-number-paper";
 
 export const paperGraphic = { width: 480, height: 126 };
 const ink = "#40604c";
 
 async function loadPicture(id: Picture) {
+  return loadImage(picturePath(id));
+}
+
+async function loadImage(path: string) {
   const image = new Image();
-  image.src = picturePath(id);
+  image.src = path;
   await image.decode();
   return image;
 }
@@ -16,7 +20,10 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape, x: number, y: nu
   ctx.beginPath();
   if (shape === "circle") ctx.arc(x + size / 2, y + size / 2, size / 2, 0, 2 * Math.PI);
   else if (shape === "square") ctx.rect(x, y, size, size);
-  else {
+  else if (shape === "diamond") {
+    ctx.moveTo(x + size / 2, y); ctx.lineTo(x + size, y + size / 2);
+    ctx.lineTo(x + size / 2, y + size); ctx.lineTo(x, y + size / 2);
+  } else {
     ctx.moveTo(x + size / 2, y);
     ctx.lineTo(x + size, y + size);
     ctx.lineTo(x, y + size);
@@ -35,6 +42,24 @@ export async function renderPreschoolGraphic(round: GraphicRound): Promise<Uint8
   ctx.scale(scale, scale);
   ctx.strokeStyle = ink;
   ctx.lineWidth = 1.25;
+
+  if (round.kind === "bricks" || round.kind === "shadow" || round.kind === "piece") {
+    const image = await loadImage(visualPath(round.kind, round.variant));
+    ctx.drawImage(image, 10, 2, 120, 120);
+    await Promise.all(round.options.map(async (option, i) => {
+      const x = 152 + i * 79;
+      ctx.strokeRect(x, 29, 70, 66);
+      if (round.kind === "bricks") {
+        ctx.fillStyle = ink;
+        ctx.font = "bold 29px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(String(option), x + 35, 72);
+      } else {
+        const answer = await loadImage(visualPath(round.kind, round.variant, option));
+        ctx.drawImage(answer, x + 5, 32, 60, 60);
+      }
+    }));
+  }
 
   if (round.kind === "match") {
     const images = await Promise.all([...round.pizzas, ...round.slices].map(loadPicture));
@@ -101,7 +126,7 @@ export async function renderPreschoolGraphic(round: GraphicRound): Promise<Uint8
   }
 
   if (round.kind === "build") {
-    const size = 50;
+    const size = round.cells.length > 6 ? 36 : 50;
     for (const offset of [4, 235]) {
       round.cells.forEach((shape, index) => {
         const x = offset + (index % round.columns) * size;

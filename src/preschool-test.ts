@@ -1,4 +1,4 @@
-import { preschoolGameIds, preschoolRounds, type PreschoolGame, type PreschoolRound } from "./preschool";
+import { hasPreschoolLevels, preschoolGameIds, preschoolRounds, type LeveledGame, type PreschoolGame, type PreschoolRound } from "./preschool";
 import type { StoryLevel } from "./banks/preschool-stories";
 
 export type PreschoolTestItem = { game: PreschoolGame; round: PreschoolRound };
@@ -7,7 +7,7 @@ export type PreschoolResult = { id: string; right: number; total: number };
 export const maxPreschoolTestItems = 120;
 export const maxPreschoolGameItems = 20;
 
-export function makePreschoolTest(counts: PreschoolTestCounts, level: StoryLevel, recentStories: readonly string[]) {
+export function makePreschoolTest(counts: PreschoolTestCounts, levels: StoryLevel | Partial<Record<LeveledGame, StoryLevel>>, recentStories: readonly string[]) {
   const paper: PreschoolTestItem[] = [];
   const queue = preschoolGameIds.flatMap(game => {
     const count = counts[game] ?? 0;
@@ -16,6 +16,7 @@ export function makePreschoolTest(counts: PreschoolTestCounts, level: StoryLevel
     const items: PreschoolTestItem[] = [];
     const seen = [...recentStories];
     while (items.length < count) {
+      const level = typeof levels === "number" ? levels : hasPreschoolLevels(game) ? levels[game] ?? 1 : 1;
       const rounds = preschoolRounds(game, level, seen).slice(0, count - items.length);
       items.push(...rounds.map(round => ({ game, round })));
       seen.push(...rounds.flatMap(round => round.kind === "story" ? [round.storyId] : []));

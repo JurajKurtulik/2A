@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, Check, RotateCcw, Star } from "lucide-react";
-import { storyBanks, type StoryLevel } from "./banks/preschool-stories";
+import { type StoryLevel } from "./banks/preschool-stories";
 import {
-  preschoolGameIds, preschoolGames, preschoolRounds,
+  preschoolGameIds, preschoolGames, preschoolRounds, preschoolLevels, hasPreschoolLevels, type LeveledGame,
   preschoolTopic, type ListenRound, type PreschoolGame, type PreschoolRound,
 } from "./preschool";
 import { makePreschoolTest, maxPreschoolGameItems, maxPreschoolTestItems, type PreschoolResult, type PreschoolTestCounts } from "./preschool-test";
 import { BuildPuzzle, MazePuzzle, MorePuzzle, PictureCard, ShapePiece, StoryPuzzle } from "./PreschoolPuzzles";
 import { FeedPuzzle } from "./FeedPuzzle";
 import { BalancePuzzle, DoorPuzzle, StreetPuzzle, TripPuzzle } from "./PreschoolNumberGames";
-import { IceCreamPuzzle, ListenPuzzle } from "./PreschoolExtraGames";
+import { IceCreamPuzzle, ListenPuzzle, VisualPuzzle } from "./PreschoolExtraGames";
 import "./preschool.css";
 
 type Play = {
@@ -32,9 +32,9 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
   onTestComplete: (score: number, total: number, topics: PreschoolResult[]) => void;
 }) {
   const [play, setPlay] = useState<Play | null>(null);
-  const [chooseStory, setChooseStory] = useState(false);
+  const [levelGame, setLevelGame] = useState<LeveledGame | null>(null);
   const [counts, setCounts] = useState<PreschoolTestCounts>({});
-  const [testLevel, setTestLevel] = useState<StoryLevel>(1);
+  const [testLevels, setTestLevels] = useState<Partial<Record<LeveledGame, StoryLevel>>>({});
   const [variant, setVariant] = useState<ReturnType<typeof makePreschoolTest> | null>(null);
   const [wrong, setWrong] = useState<string[]>([]);
   const [solved, setSolved] = useState(false);
@@ -44,7 +44,7 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
   const audio = useRef<HTMLAudioElement | null>(null);
   const transition = useRef<HTMLElement | null>(null);
   const previousScreen = useRef("");
-  const screen = play ? `${play.game}-${play.index}-${play.finished}` : builder ? "builder" : chooseStory ? "story-levels" : "menu";
+  const screen = play ? `${play.game}-${play.index}-${play.finished}` : builder ? "builder" : levelGame ? "story-levels" : "menu";
   useEffect(() => {
     if (previousScreen.current) transition.current?.focus();
     previousScreen.current = screen;
@@ -108,7 +108,7 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
   }
 
   function testVariant() {
-    const chosen = variant ?? makePreschoolTest(counts, testLevel, recentStories);
+    const chosen = variant ?? makePreschoolTest(counts, testLevels, recentStories);
     setVariant(chosen);
     return chosen;
   }
@@ -121,7 +121,7 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
     if (ids.length) onStoriesSeen(ids);
     resetRound();
     setExportError(false);
-    setPlay({ game, rounds, index: 0, score: 0, finished: false, level: testLevel, test,
+    setPlay({ game, rounds, index: 0, score: 0, finished: false, level: 1, test,
       results: preschoolGameIds.filter(id => counts[id]).map(id => ({ id: preschoolTopic(id), right: 0, total: counts[id]! })),
     });
     playInstruction(game, rounds[0]);
@@ -168,36 +168,37 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
             {Array.from({ length: maxPreschoolGameItems + 1 }, (_, count) => <option key={count} value={count}>{count}</option>)}
           </select>
         </label>)}
-        {!!counts.story && <label><span>Počet obrázků v příběhu</span>
-          <select value={testLevel} onChange={event => {
-            setTestLevel(event.target.value === "2" ? 2 : 1);
+        {(Object.keys(preschoolLevels) as LeveledGame[]).filter(id => counts[id]).map(id => <label key={id + "-level"}>
+          <span>Úroveň · {preschoolGames[id].title}</span>
+          <select value={testLevels[id] ?? 1} onChange={event => {
+            setTestLevels({ ...testLevels, [id]: event.target.value === "2" ? 2 : 1 });
             setVariant(null);
-          }}><option value="1">3 obrázky</option><option value="2">5 obrázků</option></select>
-        </label>}
+          }}><option value="1">{preschoolLevels[id][0]}</option><option value="2">{preschoolLevels[id][1]}</option></select>
+        </label>)}
       </div>
       <p role="status">Počet úloh {total} / {maxPreschoolTestItems}</p>
       <div className="preschool-test-actions">
         <button type="button" className="button primary" disabled={!total || total > maxPreschoolTestItems} onClick={startTest}>Spustit online</button>
         {exportButtons}
-        {variant && <button type="button" className="button light" disabled={exporting} onClick={() => setVariant(makePreschoolTest(counts, testLevel, recentStories))}>Nová varianta</button>}
+        {variant && <button type="button" className="button light" disabled={exporting} onClick={() => setVariant(makePreschoolTest(counts, testLevels, recentStories))}>Nová varianta</button>}
       </div>
       {exportError && <p role="alert">Pracovní list se nepodařilo připravit.</p>}
     </section>
   );
-  if (!play && chooseStory) return (
+  if (!play && levelGame) return (
     <section className="preschool-menu">
       <header className="preschool-toolbar">
-        <button type="button" className="preschool-back" onClick={() => setChooseStory(false)} aria-label="Zpět ke hrám"><ChevronLeft /></button>
-        <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Co bylo nejdřív?</h1>
+        <button type="button" className="preschool-back" onClick={() => setLevelGame(null)} aria-label="Zpět ke hrám"><ChevronLeft /></button>
+        <h1 tabIndex={-1} ref={element => { transition.current = element; }}>{preschoolGames[levelGame].title}</h1>
       </header>
       <div className="preschool-levels" aria-label="Vyber úroveň">
-        {([1, 2] as const).filter(level => level === 1 || storyBanks[level].length > 0).map(level => {
+        {([1, 2] as const).map(level => {
           const count = level === 1 ? 3 : 5;
-          return <button key={level} type="button" className={`preschool-game level-${level}`} onClick={() => start("story", level)}>
+          return <button key={level} type="button" className={`preschool-game level-${level}`} onClick={() => start(levelGame, level)}>
             <span className="preschool-level-cards" aria-hidden="true">
               {Array.from({ length: count }, (_, i) => <span key={i} />)}
             </span>
-            <strong>{level === 1 ? "3 obrázky" : "5 obrázků"}</strong>
+            <strong>{preschoolLevels[levelGame][level - 1]}</strong>
             <small>Úroveň {level}</small>
           </button>;
         })}
@@ -209,7 +210,7 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
       <h1 tabIndex={-1} ref={element => { transition.current = element; }}>Obrázkové hry</h1>
       <div className="preschool-games">
         {preschoolGameIds.map(id => (
-          <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => id === "story" && storyBanks[2].length > 0 ? setChooseStory(true) : start(id)}>
+          <button type="button" key={id} className={`preschool-game ${id}`} onClick={() => hasPreschoolLevels(id) ? setLevelGame(id) : start(id)}>
             {preschoolGames[id].picture === "build" ? (
               <span className="preschool-build-icon" aria-hidden="true">
                 <ShapePiece shape="circle" /><ShapePiece shape="square" /><ShapePiece shape="triangle" />
@@ -234,7 +235,7 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
   return (
     <section className="preschool-play" aria-label={game.title}>
       <header className="preschool-toolbar">
-        <button type="button" className="preschool-back" onClick={back} aria-label={play.test ? "Zpět k sestavení testu" : chooseStory ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
+        <button type="button" className="preschool-back" onClick={back} aria-label={play.test ? "Zpět k sestavení testu" : levelGame ? "Zpět na výběr úrovně" : "Zpět ke hrám"}><ChevronLeft /></button>
         <h1>{play.test && play.finished ? "Předškolácký test" : game.title}</h1>
         {!play.finished && <button type="button" className="preschool-speaker" ref={element => { transition.current = element; }}
           aria-label="Přehrát pokyn znovu" onClick={() => playInstruction(play.game, round)}>
@@ -292,6 +293,7 @@ export function PreschoolGames({ builder, onGames, onComplete, onTestComplete, r
           {(round.kind === "street" || round.kind === "match") && <StreetPuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "iceCream" && <IceCreamPuzzle key={roundKey} round={round} {...feedback} />}
           {round.kind === "listen" && <ListenPuzzle key={roundKey} round={round} {...feedback} />}
+          {(round.kind === "bricks" || round.kind === "shadow" || round.kind === "piece") && <VisualPuzzle key={roundKey} round={round} {...feedback} />}
           <div className="preschool-feedback" role="status">
             {solved ? <Check aria-label="Správně" /> : !!wrong.length && <RotateCcw aria-label="Zkus to znovu" />}
           </div>
