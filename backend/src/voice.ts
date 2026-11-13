@@ -6,9 +6,9 @@ const topics = { free: 'zjisti, co chce žák procvičit', colors: 'barvy', anim
 
 export async function connectVoice(
   input: unknown, name: string | undefined, store: Store, credential: TokenCredential,
-  config: { endpoint: string; deployment: string; daily: number },
+  config: { endpoint: string; deployment: string; liveDeployment?: string; daily: number },
 ) {
-  const { topic, sdp, greeting } = (input ?? {}) as Record<string, unknown>;
+  const { topic, sdp, greeting, supportsLive } = (input ?? {}) as Record<string, unknown>;
   if (typeof topic !== 'string' || !Object.hasOwn(topics, topic) ||
       typeof sdp !== 'string' || !sdp.startsWith('v=0') || sdp.length > 24000 || typeof greeting !== 'boolean')
     throw new ApiError(400, 'invalid_voice_request');
@@ -30,11 +30,31 @@ export async function connectVoice(
   const instructions = [
     'Jsi přátelský hlasový učitel angličtiny pro českého začátečníka. Vysvětluj stručně česky a anglická slova vyslovuj přirozeně.',
     `Okruh pro začátek: ${topics[topic as keyof typeof topics]}.`, first,
-    'Pokládej jednu krátkou otázku najednou a počkej na odpověď. Úlohy tvoř sám a přizpůsobuj je podle toho, co žák umí.',
+    'Po pozdravu polož právě jednu krátkou otázku a ukonči svůj tah. Po každé otázce nebo výzvě k zopakování počkej, až žák odpoví. Úlohy tvoř sám a přizpůsobuj je podle toho, co žák umí.',
+    'Začni jednotlivými slovy a přijímej jednoslovné odpovědi. Všechny pokyny a zpětnou vazbu říkej česky po celou lekci. Anglicky říkej jen procvičovaná slova a příklady.',
     'Při „nevím“ ukaž vzor a nabídni zopakování. Pokud řeči nerozumíš, požádej o zopakování. Výslovnost neznámkuj.',
     'Drž se věkově vhodné angličtiny. Na jiné téma stručně řekni, že tu procvičujete angličtinu, a vrať se k ní. Nežádej osobní údaje.',
     'Při sdělení o nebezpečí povzbuď žáka, aby se hned obrátil na důvěryhodného dospělého.',
   ].join(' ');
+  if (supportsLive === true && config.liveDeployment) {
+    const call = await fetch(new URL('/openai/v1/live/sessions', endpoint), {
+      method: 'POST', signal: AbortSignal.timeout(12000),
+      headers: { Authorization: `Bearer ${token.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session: { model: config.liveDeployment, instructions, audio: { output: { voice: 'marin' } },
+          delegation: { type: 'client' } },
+        transport: { type: 'webrtc', sdp },
+      }),
+    });
+    if (!call.ok) {
+      console.warn('GPT-Live session creation failed', call.status, call.headers.get('x-request-id'));
+      throw new ApiError(503, 'voice_unavailable');
+    }
+    const result = await call.json() as { transport?: { sdp?: string } };
+    if (typeof result.transport?.sdp !== 'string' || !result.transport.sdp.startsWith('v=0'))
+      throw new ApiError(503, 'voice_unavailable');
+    return { sdp: result.transport.sdp };
+  }
   const created = await fetch(new URL('/openai/v1/realtime/client_secrets', endpoint), {
     method: 'POST', signal: AbortSignal.timeout(12000),
     headers: { Authorization: `Bearer ${token.token}`, 'Content-Type': 'application/json' },

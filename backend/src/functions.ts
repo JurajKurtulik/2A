@@ -124,8 +124,11 @@ app.http('voicePilot', { route: 'v1/profile/voice', methods: ['POST', 'OPTIONS']
     const answer = await connectVoice(await progressJson(request, 32 * 1024), auth.profileName(profile), service().store, credential, {
       endpoint: required('VOICE_FOUNDRY_ENDPOINT'),
       deployment: required('VOICE_FOUNDRY_DEPLOYMENT'), daily: positive('VOICE_PILOT_DAILY_LIMIT', 10, 100),
+      liveDeployment: process.env.VOICE_LIVE_DEPLOYMENT,
     });
-    return { status: 200, headers: { 'Content-Type': 'application/sdp' }, body: answer };
+    return typeof answer === 'string'
+      ? { status: 200, headers: { 'Content-Type': 'application/sdp' }, body: answer }
+      : { status: 200, jsonBody: answer };
   }) });
 app.http('profileHistory', { route: 'v1/profile/progress', methods: ['GET', 'POST', 'OPTIONS'], authLevel: 'anonymous',
   handler: request => handle(request, async () => {
