@@ -121,9 +121,9 @@ app.http('voicePilot', { route: 'v1/profile/voice', methods: ['POST', 'OPTIONS']
     if (process.env.VOICE_PILOT_ENABLED !== 'true') throw new ApiError(503, 'voice_unavailable');
     const auth = profileAuth();
     const profile = auth.profile(request.headers.get('authorization'));
-    const answer = await connectVoice(await progressJson(request, 32 * 1024), auth.profileName(profile), service().store, credential, {
+    const answer = await connectVoice(await progressJson(request, 32 * 1024), auth.profileName(profile), credential, {
       endpoint: required('VOICE_FOUNDRY_ENDPOINT'),
-      deployment: required('VOICE_FOUNDRY_DEPLOYMENT'), daily: positive('VOICE_PILOT_DAILY_LIMIT', 10, 100),
+      deployment: required('VOICE_FOUNDRY_DEPLOYMENT'),
       liveDeployment: process.env.VOICE_LIVE_DEPLOYMENT,
     });
     return typeof answer === 'string'
