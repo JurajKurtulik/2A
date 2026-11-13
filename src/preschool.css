@@ -48,6 +48,12 @@
 .preschool-steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .preschool-steps li { width: 12px; height: 12px; border: 2px solid #b8cabb; border-radius: 50%; }
 .preschool-steps li.reached { background: #438461; border-color: #438461; }
+.preschool-steps li.preschool-step-count { width: auto; height: auto; border: 0; font-weight: 800; color: #365b49; }
+.preschool-test-open { margin-bottom: 18px; }
+.preschool-test-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 275px), 1fr)); gap: 10px; }
+.preschool-test-counts label { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid #d5dec9; border-radius: 12px; background: #fffdf6; }
+.preschool-test-counts select { font: inherit; min-height: 42px; padding: 4px; border-radius: 8px; }
+.preschool-test-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .preschool-prompt, .preschool-choices { display: flex; justify-content: center; align-items: center; gap: clamp(5px, 2vw, 15px); width: 100%; }
 .preschool-prompt img, .preschool-missing { width: min(8.5%, 68px); min-width: 0; aspect-ratio: 1; object-fit: contain; }
 .preschool-prompt.pair img { width: clamp(76px, 16vw, 124px); }
@@ -110,7 +116,7 @@
 .puzzle-choice-row button:disabled, .street-slot:disabled { cursor: default; }
 .number-dots { display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 2px; width: clamp(27px, 7vw, 42px); aspect-ratio: 1; }
 .number-dots i { background: #365b49; border-radius: 50%; }
-.trip-vehicle { display: grid; position: relative; width: min(100%, 330px); }
+.trip-vehicle { display: grid; position: relative; width: min(100%, 429px); }
 .trip-vehicle > img { width: 100%; height: auto; }
 .trip-seats, .trip-stop > div { display: flex; gap: 4px; justify-content: center; }
 .trip-seats {
@@ -138,8 +144,8 @@ button.trip-rider { cursor: pointer; }
 .balance-pan.pan-1 { transform: translateY(var(--travel)); }
 .balance-pan.pan-1 > img { transform: scaleX(-1); }
 .balance-pan-apples {
-  position: absolute; left: 0; width: 35%; top: 34%; height: 36%; display: flex; flex-wrap: wrap;
-  justify-content: center; align-content: end; gap: 1px; padding: 0 5% 13%; pointer-events: auto;
+  position: absolute; left: 0; width: 35%; top: 34%; height: 30%; display: flex; flex-wrap: nowrap;
+  justify-content: center; align-items: end; padding: 0 4%; pointer-events: auto;
 }
 .pan-1 .balance-pan-apples { left: auto; right: 0; }
 .balance-basket { position: relative; display: flex; justify-content: center; gap: 4px; width: min(100%, 310px); min-height: 48px; padding: 4px; border-bottom: 2px dashed #bb9870; }
@@ -149,7 +155,10 @@ button.trip-rider { cursor: pointer; }
   aspect-ratio: 1; border: 0; border-radius: 50%; background: transparent; cursor: grab; touch-action: none;
 }
 .balance-apple[aria-pressed="true"] { background: transparent; outline: 2px solid #ae7323; outline-offset: 1px; }
-.balance-pan-apples[data-crowded="true"] .balance-apple { width: 29%; }
+.balance-pan-apples .balance-apple { flex: 0 0 auto; width: min(35%, calc(100% / (0.7 * var(--apples, 1) + 0.3))); }
+.balance-pan-apples .balance-apple + .balance-apple { margin-left: max(-10.5%, calc(-30% / (0.7 * var(--apples, 1) + 0.3))); }
+.street-houses button, .street-slot:has(img) { touch-action: none; }
+.street-houses img, .street-slot img { pointer-events: none; user-select: none; }
 .balance-apple img { pointer-events: none; user-select: none; width: 100%; height: 100%; object-fit: contain; }
 .door-clue { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border: 2px solid #ddc59e; border-radius: 14px; background: #fff2db; }
 .door-sign { display: flex; align-items: center; gap: 8px; }
@@ -253,6 +262,7 @@ button.trip-rider { cursor: pointer; }
 .preschool-paper-root { display: none; }
 @media print {
   .preschool-paper-page { box-sizing: border-box; width: 210mm; padding: 13mm 15mm; color: #213b2e; }
+  .preschool-paper-page + .preschool-paper-page { break-before: page; }
   .preschool-paper-page h1 { font-size: 24pt; margin: 3mm 0; }
   .preschool-paper-page p { margin: 0 0 6mm; font-size: 12pt; }
   .preschool-paper-round { position: relative; padding: 3mm 0 3mm 10mm; border-bottom: 1px solid #d5ded5; break-inside: avoid; }

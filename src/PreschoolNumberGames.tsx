@@ -128,7 +128,7 @@ export function BalancePuzzle({ round, solved, onCorrect, onWrong }: Feedback & 
       <img className="balance-base-art" src="./preschool/pictures/balanceBase.png" alt="" draggable={false} />
       {[0, 1].map(place => <div className={`balance-pan pan-${place}`} key={place}>
         <img src="./preschool/pictures/balanceBowl.png" alt="" draggable={false} />
-        <div className="balance-pan-apples" data-apple-place={place} data-crowded={counts[place] > 3}>
+        <div className="balance-pan-apples" data-apple-place={place} style={{ "--apples": counts[place] } as CSSProperties}>
           <button className="puzzle-drop-target" type="button" aria-label={`${place === 0 ? "Levá" : "Pravá"} miska, jablka: ${counts[place]}`}
             disabled={solved} onClick={() => move(place)} />
           {apples(place)}
@@ -183,31 +183,63 @@ export function StreetPuzzle({ round, solved, onCorrect, onWrong }: Feedback & {
   const [selected, setSelected] = useState<StreetHouse | null>(null);
   const [slots, setSlots] = useState<(StreetHouse | null)[]>(() => round.houses.map(() => null));
 
-  function place(index: number) {
-    if (selected) {
-      const previous = slots.indexOf(selected);
-      setSlots(slots.map((house, i) => i === index ? selected : i === previous ? slots[index] : house));
+  const track = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ house: StreetHouse; x: number; y: number } | null>(null);
+  const pointer = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
+
+  function place(index: number, house = selected) {
+    if (house) {
+      const previous = slots.indexOf(house);
+      setSlots(slots.map((current, i) => i === index ? house : i === previous ? slots[index] : current));
       setSelected(null);
     } else {
       setSelected(slots[index]);
     }
   }
 
+  function dragHouse(house: StreetHouse | null) {
+    return {
+      onPointerDown(event: PointerEvent<HTMLButtonElement>) {
+        pointer.current = null;
+        if (!house || !event.isPrimary || event.button !== 0) return;
+        pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      },
+      onPointerMove(event: PointerEvent<HTMLButtonElement>) {
+        const active = pointer.current;
+        if (!house || active?.id !== event.pointerId || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 7) active.moved = true;
+        if (active.moved) setDrag({ house, x: event.clientX, y: event.clientY });
+      },
+      onPointerUp(event: PointerEvent<HTMLButtonElement>) {
+        if (!house || pointer.current?.id !== event.pointerId || !pointer.current.moved) return;
+        setDrag(null);
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-street-slot]");
+        if (target && track.current?.contains(target)) place(Number(target.dataset.streetSlot), house);
+      },
+      onLostPointerCapture() { setDrag(null); },
+    };
+  }
+
   return <div className="new-puzzle street-puzzle">
     <div className="street-track street-model" aria-label="Vzor ulice">
       {round.model.map(house => <span key={house}><PictureCard picture={house} /></span>)}
     </div>
-    <div className="street-track" aria-label="Ulice">
+    <div className="street-track" aria-label="Ulice" ref={track}>
       {slots.map((house, i) => <button type="button" className="street-slot" key={i}
         aria-label={`Místo ${i + 1}${house ? `, ${pictureLabel(house)}` : ", prázdné"}`} disabled={solved}
-        aria-pressed={!!house && selected === house} onClick={() => place(i)}>
+        data-street-slot={i} {...dragHouse(house)} aria-pressed={!!house && selected === house}
+        onClick={event => { if (!event.detail || !pointer.current?.moved) place(i); }}>
         {house && <PictureCard picture={house} />}
       </button>)}
     </div>
     <div className="puzzle-choice-row street-houses" aria-label="Volné domečky">
       {round.houses.map(house => <button type="button" key={house} aria-pressed={selected === house} disabled={solved || slots.includes(house)}
-        onClick={() => setSelected(selected === house ? null : house)}><PictureCard picture={house} /></button>)}
+        {...dragHouse(house)} onClick={event => {
+          if (!event.detail || !pointer.current?.moved) setSelected(selected === house ? null : house);
+        }}><PictureCard picture={house} /></button>)}
     </div>
+    {drag && <span className="feed-drag" aria-hidden="true" style={{ left: drag.x, top: drag.y }}><PictureCard picture={drag.house} /></span>}
     {!solved && <Confirm label="Zkontrolovat ulici" disabled={slots.includes(null)} onClick={() => {
       setSelected(null);
       if (slots.every((house, i) => house === round.model[i])) onCorrect();
