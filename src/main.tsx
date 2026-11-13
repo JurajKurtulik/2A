@@ -17,6 +17,7 @@ import {
   Leaf,
   RotateCcw,
   Sparkles,
+  Bot,
   Star,
   Trophy,
   X,
@@ -552,10 +553,10 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
     ["math", "Matematika", Calculator],
     ["czech", "Čeština", BookOpen],
     ["tests", isPreschool ? "Předškolácký test" : "Zkus si písemku", Sparkles],
-    ["voice", "Angličtina nahlas", Sparkles],
+    ["voice", "Povídej a procvičuj", Bot],
     ["progress", "Moje pokroky", Trophy],
   ] as const).filter(([id]) => id === "voice"
-    ? import.meta.env.VITE_VOICE_PILOT === "true"
+    ? !isPreschool && import.meta.env.VITE_VOICE_PILOT === "true"
     : !isPreschool || id === "home" || id === "progress" || id === "tests");
   return (
     <div className="app-shell">
@@ -633,7 +634,7 @@ function App({ login, logout }: { login: Login; logout: () => void }) {
               po zavření nezůstane uložený.
             </div>
           )}
-          {page === "voice" && <VoiceLesson login={login} />}
+          {page === "voice" && !isPreschool && <VoiceLesson key={grade} login={login} grade={grade} />}
           {isPreschool && (page === "home" || page === "tests") && (
             <PreschoolGames
               key={page}

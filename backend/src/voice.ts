@@ -2,14 +2,44 @@ import type { TokenCredential } from '@azure/core-auth';
 import { ApiError } from './contracts.js';
 import { mutate, type Store } from './store.js';
 
-const topics = { free: 'zjisti, co chce žák procvičit', colors: 'barvy', animals: 'zvířata', body: 'části těla' } as const;
+const vocabulary: Record<string, string> = {
+  free: 'Nejprve zjisti, jaká anglická slovíčka chce žák procvičit. Pokud neví, nabídni barvy nebo zvířata.',
+  colors: 'barvy', animals: 'zvířata', body: 'části těla', family: 'rodina',
+  food: 'jídlo a pití', clothes: 'oblečení', toys: 'hračky', school: 'školní potřeby', numbers: 'čísla od jedné do dvaceti',
+};
+const math: Record<string, string> = {
+  mental10: 'Dávej krátké příklady na sčítání a odčítání zpaměti. Všechna čísla včetně výsledku jsou celá od nuly do deseti.',
+  mental20: 'Dávej krátké příklady na sčítání a odčítání zpaměti. Všechna čísla včetně výsledku jsou celá od nuly do dvaceti.',
+  multiplication: 'Procvičuj malou násobilku s činiteli od jedné do deseti. Začni jednodušším příkladem a přizpůsob se žákovi.',
+  stories20: 'Vymýšlej krátké slovní úlohy ze známého prostředí s jednou otázkou a jedním sčítáním nebo odčítáním. Čísla i výsledek musí být celá od nuly do dvaceti.',
+  compare20: 'Řekni dvě různá celá čísla od nuly do dvaceti a zeptej se, které je větší nebo menší.',
+};
+const czech: Record<string, string> = {
+  sentenceKinds: 'Řekni jednu krátkou větu s přirozenou intonací a nech žáka určit, zda je oznamovací, tázací, rozkazovací nebo přací. Střídej druhy a přijmi běžná dětská označení.',
+  opposites: 'Řekni jedno běžné české slovo a zeptej se na jeho protiklad. Přijmi běžné smysluplné možnosti.',
+  categories: 'Střídej hledání nadřazeného pojmu pro dva známé příklady a hledání jednoho podřazeného slova pro danou skupinu. Přijmi každý věcně správný příklad.',
+};
+
+function lessonFor(topic: string) {
+  if (Object.hasOwn(vocabulary, topic)) return {
+    subject: 'angličtiny',
+    activity: `Procvičuj jednotlivá anglická slovíčka. Ptej se vždy na jedno a přijímej jednoslovné odpovědi. Okruh pro začátek: ${vocabulary[topic]}.`,
+  };
+  if (topic === 'sentences') return {
+    subject: 'angličtiny',
+    activity: 'Trénuj krátké věty z běžného života. V každém kole řekni význam jedné věty česky, pak ji pomalu vyslov anglicky a požádej žáka, aby ji zopakoval. Počkej. Pokud je ve větě nebo ve srozumitelné výslovnosti konkrétní chyba, laskavě předveď správný vzor a dej prostor k dalšímu pokusu se stejnou větou. Při nejistém poslechu požádej o zopakování. Přijmi srozumitelnou výslovnost i s přízvukem. Až se věta povede, krátce pochval a nabídni jednu novou větu.',
+  };
+  if (Object.hasOwn(math, topic)) return { subject: 'matematiky', activity: math[topic] };
+  if (Object.hasOwn(czech, topic)) return { subject: 'češtiny', activity: czech[topic] };
+}
 
 export async function connectVoice(
   input: unknown, name: string | undefined, store: Store, credential: TokenCredential,
   config: { endpoint: string; deployment: string; liveDeployment?: string; daily: number },
 ) {
-  const { topic, sdp, greeting, supportsLive } = (input ?? {}) as Record<string, unknown>;
-  if (typeof topic !== 'string' || !Object.hasOwn(topics, topic) ||
+  const { topic, grade, sdp, greeting, supportsLive } = (input ?? {}) as Record<string, unknown>;
+  const lesson = typeof topic === 'string' ? lessonFor(topic) : undefined;
+  if (!lesson || (grade !== undefined && (typeof grade !== 'number' || !Number.isInteger(grade) || grade < 1 || grade > 9)) ||
       typeof sdp !== 'string' || !sdp.startsWith('v=0') || sdp.length > 24000 || typeof greeting !== 'boolean')
     throw new ApiError(400, 'invalid_voice_request');
   const endpoint = new URL(config.endpoint);
@@ -28,12 +58,13 @@ export async function connectVoice(
   if (!token) throw new ApiError(503, 'voice_unavailable');
   const first = greeting && name ? `V první odpovědi oslov žáka českým vokativem tohoto křestního jména: ${JSON.stringify(name)}.` : 'V první odpovědi krátce pozdrav.';
   const instructions = [
-    'Jsi přátelský hlasový učitel angličtiny pro českého začátečníka. Vysvětluj stručně česky a anglická slova vyslovuj přirozeně.',
-    `Okruh pro začátek: ${topics[topic as keyof typeof topics]}.`, first,
-    'Po pozdravu polož právě jednu krátkou otázku a ukonči svůj tah. Po každé otázce nebo výzvě k zopakování počkej, až žák odpoví. Úlohy tvoř sám a přizpůsobuj je podle toho, co žák umí.',
-    'Začni jednotlivými slovy a přijímej jednoslovné odpovědi. Všechny pokyny a zpětnou vazbu říkej česky po celou lekci. Anglicky říkej jen procvičovaná slova a příklady.',
-    'Při „nevím“ ukaž vzor a nabídni zopakování. Pokud řeči nerozumíš, požádej o zopakování. Výslovnost neznámkuj.',
-    'Drž se věkově vhodné angličtiny. Na jiné téma stručně řekni, že tu procvičujete angličtinu, a vrať se k ní. Nežádej osobní údaje.',
+    `Jsi přátelský hlasový učitel ${lesson.subject} pro českého školáka${grade === undefined ? '' : ` z ${grade}. třídy`}.`,
+    first, lesson.activity,
+    'Po pozdravu zadej právě jeden krátký úkol nebo polož jednu otázku. Po každé otázce nebo výzvě dej dítěti čas a počkej na jeho odpověď. Úlohy tvoř sám, vyhodnocuj je a přizpůsobuj tomu, co žák umí.',
+    'Pokyny a zpětnou vazbu říkej stručně česky po celou lekci. Anglicky vyslovuj jen procvičovaná slova a věty.',
+    'Při „nevím“ krátce pomoz nebo předveď vzor. Pokud řeči nerozumíš, požádej o zopakování.',
+    'Po zpětné vazbě plynule pokračuj jedním dalším úkolem. Nikdy sám nenavrhuj konec ani se neptej, jestli chce žák pokračovat. Když žák výslovně chce skončit, krátce se rozluč.',
+    `Drž se vybraného okruhu ${lesson.subject}. Pokud rozhovor odbočí, laskavě ho vrať k procvičování. Nežádej osobní údaje.`,
     'Při sdělení o nebezpečí povzbuď žáka, aby se hned obrátil na důvěryhodného dospělého.',
   ].join(' ');
   if (supportsLive === true && config.liveDeployment) {
