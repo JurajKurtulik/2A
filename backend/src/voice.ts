@@ -1,6 +1,5 @@
 import type { TokenCredential } from '@azure/core-auth';
 import { ApiError } from './contracts.js';
-import { mutate, type Store } from './store.js';
 
 const vocabulary: Record<string, string> = {
   free: 'Nejprve zjisti, jaká anglická slovíčka chce žák procvičit. Pokud neví, nabídni barvy nebo zvířata.',
@@ -34,8 +33,8 @@ function lessonFor(topic: string) {
 }
 
 export async function connectVoice(
-  input: unknown, name: string | undefined, store: Store, credential: TokenCredential,
-  config: { endpoint: string; deployment: string; liveDeployment?: string; daily: number },
+  input: unknown, name: string | undefined, credential: TokenCredential,
+  config: { endpoint: string; deployment: string; liveDeployment?: string },
 ) {
   const { topic, grade, sdp, greeting, supportsLive } = (input ?? {}) as Record<string, unknown>;
   const lesson = typeof topic === 'string' ? lessonFor(topic) : undefined;
@@ -45,15 +44,6 @@ export async function connectVoice(
   const endpoint = new URL(config.endpoint);
   if (!/^https:\/\/[a-z0-9-]+\.openai\.azure\.com\/$/.test(endpoint.href))
     throw new ApiError(503, 'configuration_unavailable');
-  const day = new Date().toISOString().slice(0, 10);
-  await mutate<{ day: string; count: number }>(store, 'quota/voice-pilot.json', previous => {
-    if (previous && (!/^\d{4}-\d{2}-\d{2}$/.test(previous.day) || previous.day > day ||
-        !Number.isSafeInteger(previous.count) || previous.count < 0)) throw new ApiError(503, 'voice_unavailable');
-    const count = previous?.day === day ? previous.count : 0;
-    if (count >= config.daily) throw new ApiError(429, 'voice_limit');
-    return { day, count: count + 1 };
-  });
-
   const token = await credential.getToken('https://ai.azure.com/.default');
   if (!token) throw new ApiError(503, 'voice_unavailable');
   const first = greeting && name ? `V první odpovědi oslov žáka českým vokativem tohoto křestního jména: ${JSON.stringify(name)}.` : 'V první odpovědi krátce pozdrav.';

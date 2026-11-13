@@ -109,8 +109,7 @@ export function VoiceLesson({ login, grade }: { login: Login; grade: number }) {
       });
       if (active.current !== connection) return;
       if (!response.ok) {
-        end(response.status === 429
-          ? "Dnešní počet zkušebních lekcí je vyčerpaný." : "Hlasový učitel teď není dostupný.");
+        end("Hlasový učitel teď není dostupný.");
         return;
       }
       live = response.headers.get("Content-Type")?.includes("application/json") ?? false;
